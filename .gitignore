@@ -2,3 +2,4 @@ html/
 png/
 writeups/
 notebooks/
+.venv/
