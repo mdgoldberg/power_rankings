@@ -8,17 +8,19 @@ from pyquery import PyQuery as pq
 
 import rank_functions
 
+NUM_WEEKS = 13
+NUM_TEAMS = 12
+
 
 def get_inputs(fn):
-    numWeeks = 13  # number of weeks in the season
     with open(fn) as f:
         html = f.read()
 
     doc = pq(html)
     table = doc('div.games-fullcol.games-fullcol-extramargin ' 'table[class="tableBody"]')
     trs = table('tr').not_('[class]')
-    trs = [tr for tr in trs.items() if len(tr('td')) == 6]
-    weeks = np.split(np.array(trs), numWeeks)
+    trs = [tr for tr in trs.items() if len(tr('td')) == 6][:int(NUM_TEAMS * NUM_WEEKS / 2)]
+    weeks = np.split(np.array(trs), NUM_WEEKS)
     rawInfo = [[[x.text_content() for x in (td[1], td[4], td[5])] for tr in week for td in tr]
                for week in weeks]
     matchups = [[(str(p1), str(p2)) for p1, p2, scoreStr in week] for week in rawInfo]
