@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "power_rankings"
+version = "0.1.0"
+description = ""
+authors = ["Matt Goldberg <matt.goldberg7@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+click = "*"
+ipdb = "*"
+ipython = "*"
+jupyter = "*"
+numpy = "*"
+pandas = "*"
+pyquery = "*"
+scikit-learn = "*"
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.build]
+generate-setup-file = false
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
