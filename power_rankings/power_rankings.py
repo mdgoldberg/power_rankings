@@ -9,7 +9,7 @@ from pyquery import PyQuery as pq
 from power_rankings import rank_functions
 
 NUM_WEEKS = 13
-NUM_TEAMS = 12
+NUM_TEAMS = 14
 
 
 def get_inputs(fn):
@@ -85,15 +85,20 @@ def ranking_strings(df, rfs, start_week, end_week):
     year = df.year.unique().item()
     retStr = "{} Power Rankings: Weeks {}-{}\n".format(year, start_week, end_week)
     retStr += "=" * len(retStr) + "\n"
-    for title, rf in rfs:
+    for title, rf, sort_rf in rfs:
         ranks = Counter(rf(df, start_week, end_week))
-        ordered = ranks.most_common()
+        if sort_rf:
+            sort_ranks = sort_rf(df, start_week, end_week)
+            ordering = sorted(sort_ranks, key=sort_ranks.get, reverse=True)
+            ordered = [(team, ranks[team]) for team in ordering]
+        else:
+            ordered = ranks.most_common()
         retStr += "{} Rankings:\n".format(title)
         for (i, (name, val)) in enumerate(ordered):
             if isinstance(val, int) or isinstance(val, float):
-                retStr += "{}. {}, {:.3f}\n".format(i + 1, name, val)
+                retStr += "{:>2}. {:25}{: .3f}\n".format(i + 1, name, val)
             else:
-                retStr += "{}. {}, {}\n".format(i + 1, name, val)
+                retStr += "{:>2}. {:25}{}\n".format(i + 1, name, val)
         retStr += "\n"
     return retStr
 
@@ -119,13 +124,14 @@ def main(html_filename, out_filename, start_week, end_week):
     """Generates rankings for a given season, given the HTML of the schedule
     and results."""
     rfs = (
-        ("Expected Wins", rank_functions.expected_wins),
-        ("Expected WPct", rank_functions.expected_win_pct),
-        ("Projected Wins", rank_functions.projected_wins),
-        ("Standings", rank_functions.get_wins),
-        ("Points For", rank_functions.points_for),
-        ("Remaining SOS", rank_functions.remaining_schedule),
-        ("Luck Wins", rank_functions.luck_rankings),
+        ("Expected WPct", rank_functions.expected_win_pct, None),
+        ("Expected Wins", rank_functions.expected_wins, None),
+        ("Luck Wins", rank_functions.luck_rankings, None),
+        ("Standings", rank_functions.get_wins, None),
+        ("Projected Wins", rank_functions.projected_wins, None),
+        ("Remaining SOS", rank_functions.remaining_schedule, None),
+        ("Point Ranks by Week", rank_functions.week_finishes, rank_functions.expected_wins),
+        ("Points For", rank_functions.points_for, None),
     )
     df = get_inputs(html_filename)
     if end_week is None:

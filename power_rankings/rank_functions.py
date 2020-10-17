@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, defaultdict
 
 import numpy as np
 import pandas as pd
@@ -6,7 +6,7 @@ import pandas as pd
 
 def most_recent_week(df):
     earliestFuture = df.week.max() + 1
-    for wk, group in df.groupby('week'):
+    for wk, group in df.groupby("week"):
         if wk < earliestFuture and not group.score.any():
             earliestFuture = wk
     return earliestFuture - 1
@@ -15,21 +15,36 @@ def most_recent_week(df):
 def expected_wins(df, start_week, end_week):
     players = df.team.unique()
     n = len(players)
-    noLuckWins = Counter({p: 0. for p in players})
-    df = df.query('@start_week <= week <= @end_week')
-    for wk, group in df.groupby('week'):
+    noLuckWins = Counter({p: 0.0 for p in players})
+    df = df.query("@start_week <= week <= @end_week")
+    for wk, group in df.groupby("week"):
         for p in players:
-            pScore = group.loc[group.team == p, 'score'].values[0]
-            allScores = group.loc[:, ['team', 'score']].values
-            expWins = np.sum(1*(pScore > score) + 0.5*(pScore == score)
-                             for opp, score in allScores if opp != p)
+            pScore = group.loc[group.team == p, "score"].values[0]
+            allScores = group.loc[:, ["team", "score"]].values
+            expWins = np.sum(
+                1 * (pScore > score) + 0.5 * (pScore == score)
+                for opp, score in allScores
+                if opp != p
+            )
             noLuckWins[p] += expWins
 
     # convert to week-per-game wins
     for p in noLuckWins:
-        noLuckWins[p] /= float(n-1)
+        noLuckWins[p] /= float(n - 1)
 
     return noLuckWins
+
+
+def week_finishes(df, start_week, end_week):
+    players = df.team.unique()
+    finishes = defaultdict(list)
+    df = df.query("@start_week <= week <= @end_week")
+    for wk, group in df.groupby("week"):
+        group_w_rank = group.assign(rank=group.score.rank(ascending=False))
+        for p in players:
+            finishes[p].append(group_w_rank.loc[group.team == p, "rank"].iloc[0])
+
+    return finishes
 
 
 def expected_win_pct(df, start_week, end_week):
@@ -40,8 +55,8 @@ def expected_win_pct(df, start_week, end_week):
 
 
 def get_wins(df, start_week, end_week):
-    df = df.query('@start_week <= week <= @end_week')
-    return dict(df.groupby('team').wins.sum().items())
+    df = df.query("@start_week <= week <= @end_week")
+    return dict(df.groupby("team").wins.sum().items())
 
 
 def projected_wins(df, start_week, end_week):
@@ -57,17 +72,17 @@ def projected_wins(df, start_week, end_week):
     return total_wins.to_dict()
     total_losses = num_past_games + num_future_games - total_wins
     return {
-        tm: '{}-{}'.format(round(wins, 2), round(loss, 2))
+        tm: "{}-{}".format(round(wins, 2), round(loss, 2))
         for (tm, wins), loss in zip(total_wins.items(), total_losses)
     }
 
 
 def remaining_schedule(df, start_week, end_week):
     expWins = expected_win_pct(df, start_week, end_week)
-    df = df.query('week > @end_week')
+    df = df.query("week > @end_week")
     weeksLeft = len(df.week.unique())
     sos = Counter()
-    for team, group in df.groupby('team'):
+    for team, group in df.groupby("team"):
         sos[team] = np.sum(expWins[opp] for opp in group.opponent)
     for p in sos:
         sos[p] /= float(weeksLeft)
@@ -86,7 +101,7 @@ def luck_rankings(df, start_week, end_week):
 
 def points_for(df, start_week, end_week):
     points = Counter()
-    df = df.query('@start_week <= week <= @end_week')
-    for k, v in df.groupby('team').score.sum().items():
+    df = df.query("@start_week <= week <= @end_week")
+    for k, v in df.groupby("team").score.sum().items():
         points[k] = v
     return points
