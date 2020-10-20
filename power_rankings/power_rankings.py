@@ -124,13 +124,13 @@ def main(html_filename, out_filename, start_week, end_week):
     """Generates rankings for a given season, given the HTML of the schedule
     and results."""
     rfs = (
-        ("Expected WPct", rank_functions.expected_win_pct, None),
-        ("Expected Wins", rank_functions.expected_wins, None),
+        ("Expected WPct", rank_functions.expected_win_pct, rank_functions.points_for),
+        ("Expected Wins", rank_functions.expected_wins, rank_functions.points_for),
         ("Luck Wins", rank_functions.luck_rankings, None),
-        ("Standings", rank_functions.get_wins, None),
-        ("Projected Wins", rank_functions.projected_wins, None),
-        ("Remaining SOS", rank_functions.remaining_schedule, None),
-        ("Point Ranks by Week", rank_functions.week_finishes, rank_functions.expected_wins),
+        ("Standings", rank_functions.get_wins, rank_functions.points_for),
+        ("Projected Wins", rank_functions.projected_wins, rank_functions.points_for),
+        ("Remaining SOS", rank_functions.remaining_schedule, rank_functions.points_for),
+        ("Point Ranks by Week", rank_functions.week_finishes, rank_functions.expected_win_pct),
         ("Points For", rank_functions.points_for, None),
     )
     df = get_inputs(html_filename)
