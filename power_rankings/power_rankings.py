@@ -9,7 +9,7 @@ from pyquery import PyQuery as pq
 from power_rankings import rank_functions
 
 NUM_WEEKS = 13
-NUM_TEAMS = 14
+NUM_TEAMS = 12
 
 
 def get_inputs(fn):
@@ -25,10 +25,10 @@ def get_inputs(fn):
     raw_info = [
         [
             {
-                "away": td[1].item().text_content(),
+                "away": re.sub(r'\s+', ' ', td[1].item().text_content().strip()),
                 "away_score_str": td[2].item().text_content(),
                 "home_score_str": td[3].item().text_content(),
-                "home": td[4].item().text_content(),
+                "home": re.sub(r'\s+', ' ', td[4].item().text_content().strip()),
             }
             for tr in week
             for td in tr
@@ -40,7 +40,7 @@ def get_inputs(fn):
     ]
     scores = [
         {
-            team: float(score_str) if score_str else 0.
+            team: float(score_str) if score_str else 0.0
             for matchup in week
             for (team, score_str) in [
                 (matchup["away"], matchup["away_score_str"]),
@@ -89,7 +89,9 @@ def ranking_strings(df, rfs, start_week, end_week):
         ranks = Counter(rf(df, start_week, end_week))
         if sort_rf:
             sort_ranks = sort_rf(df, start_week, end_week)
-            ordering = sorted(sort_ranks, key=sort_ranks.get, reverse=True)
+            ordering = sorted(
+                sort_ranks, key=lambda x: (ranks[x], sort_ranks[x]), reverse=True
+            )
             ordered = [(team, ranks[team]) for team in ordering]
         else:
             ordered = ranks.most_common()
@@ -130,7 +132,11 @@ def main(html_filename, out_filename, start_week, end_week):
         ("Standings", rank_functions.get_wins, rank_functions.points_for),
         ("Projected Wins", rank_functions.projected_wins, rank_functions.points_for),
         ("Remaining SOS", rank_functions.remaining_schedule, rank_functions.points_for),
-        ("Point Ranks by Week", rank_functions.week_finishes, rank_functions.expected_win_pct),
+        (
+            "Point Ranks by Week",
+            rank_functions.week_finishes,
+            rank_functions.expected_win_pct,
+        ),
         ("Points For", rank_functions.points_for, None),
     )
     df = get_inputs(html_filename)
