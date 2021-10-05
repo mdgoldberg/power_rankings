@@ -7,14 +7,17 @@ import click
 from . import power_rankings
 from . import rank_functions
 
+DUPES = {}
+
 
 @click.command()
 @click.argument("base_filename")
 @click.argument("start_year", type=int)
-@click.argument("end_year", default=2020)
+@click.argument("end_year", default=2021)
 def main(base_filename, start_year, end_year):
     rfs = {
         "Expected Wins": rank_functions.expected_wins,
+        "Pct": rank_functions.expected_win_pct,
         "Luck Wins": rank_functions.luck_rankings,
         "Wins": rank_functions.get_wins,
         "Points For": rank_functions.points_for,
@@ -24,6 +27,7 @@ def main(base_filename, start_year, end_year):
 
     for yr in range(start_year, end_year + 1):
         df = power_rankings.get_inputs("{}{}.html".format(base_filename, yr))
+        df = df.replace(DUPES)
         start_week = 1
         end_week = rank_functions.most_recent_week(df)
         for title, rf in rfs.items():

@@ -25,10 +25,10 @@ def get_inputs(fn):
     raw_info = [
         [
             {
-                "away": re.sub(r'\s+', ' ', td[1].item().text_content().strip()),
+                "away": re.sub(r"\s+", " ", td[1].item().text_content().strip()),
                 "away_score_str": td[2].item().text_content(),
                 "home_score_str": td[3].item().text_content(),
-                "home": re.sub(r'\s+', ' ', td[4].item().text_content().strip()),
+                "home": re.sub(r"\s+", " ", td[4].item().text_content().strip()),
             }
             for tr in week
             for td in tr
@@ -137,7 +137,28 @@ def main(html_filename, out_filename, start_week, end_week):
             rank_functions.week_finishes,
             rank_functions.expected_win_pct,
         ),
+        (
+            "Opponent Point Ranks by Week",
+            rank_functions.week_opp_finishes,
+            rank_functions.expected_win_pct,
+        ),
+        (
+            "W/L by Week",
+            rank_functions.week_win_loss,
+            rank_functions.expected_win_pct,
+        ),
+        (
+            "Zipped by Week",
+            rank_functions.zipped,
+            rank_functions.expected_win_pct,
+        ),
+        (
+            "Opponent Zipped by Week",
+            rank_functions.zipped_opp,
+            rank_functions.expected_win_pct,
+        ),
         ("Points For", rank_functions.points_for, None),
+        ("Points Against", rank_functions.points_against, None),
     )
     df = get_inputs(html_filename)
     if end_week is None:
