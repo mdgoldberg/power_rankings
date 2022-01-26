@@ -8,7 +8,7 @@ from pyquery import PyQuery as pq
 
 from power_rankings import rank_functions
 
-NUM_WEEKS = 13
+NUM_WEEKS = 14
 NUM_TEAMS = 12
 
 
@@ -129,7 +129,7 @@ def main(html_filename, out_filename, start_week, end_week):
         ("Expected WPct", rank_functions.expected_win_pct, rank_functions.points_for),
         ("Expected Wins", rank_functions.expected_wins, rank_functions.points_for),
         ("Actual Wins", rank_functions.get_wins, rank_functions.points_for),
-        ("Luck Wins (Expected - Actual Wins)", rank_functions.luck_rankings, None),
+        ("Luck Wins (Actual - Expected Wins)", rank_functions.luck_rankings, None),
         ("Projected Wins", rank_functions.projected_wins, rank_functions.points_for),
         ("Remaining SOS", rank_functions.remaining_schedule, rank_functions.points_for),
         (

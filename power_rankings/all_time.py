@@ -7,7 +7,10 @@ import click
 from . import power_rankings
 from . import rank_functions
 
-DUPES = {}
+DUPES = {
+    "MATTHEW GOLDBERG": "Matt Goldberg",
+    "mitch hildreth, I. Reese": "mitch hildreth",
+}
 
 
 @click.command()
