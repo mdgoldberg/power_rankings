@@ -4,37 +4,6 @@ import numpy as np
 import pandas as pd
 
 
-def most_recent_week(df):
-    earliestFuture = df.week.max() + 1
-    for wk, group in df.groupby("week"):
-        if wk < earliestFuture and not group.score.any():
-            earliestFuture = wk
-    return earliestFuture - 1
-
-
-def expected_wins(df, start_week, end_week):
-    players = df.team.unique()
-    n = len(players)
-    noLuckWins = Counter({p: 0.0 for p in players})
-    df = df.query("@start_week <= week <= @end_week")
-    for wk, group in df.groupby("week"):
-        for p in players:
-            pScore = group.loc[group.team == p, "score"].values[0]
-            allScores = group.loc[:, ["team", "score"]].values
-            expWins = np.sum(
-                1 * (pScore > score) + 0.5 * (pScore == score)
-                for opp, score in allScores
-                if opp != p
-            )
-            noLuckWins[p] += expWins
-
-    # convert to week-per-game wins
-    for p in noLuckWins:
-        noLuckWins[p] /= float(n - 1)
-
-    return noLuckWins
-
-
 def week_finishes(df, start_week, end_week):
     players = df.team.unique()
     finishes = defaultdict(list)
