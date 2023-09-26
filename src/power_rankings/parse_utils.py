@@ -59,7 +59,8 @@ def get_inputs(filename: Path) -> pd.DataFrame:
         )
 
     df["wins"] = [wins_func(score, opp) for score, opp in zip(df.score, df.opp_score)]
-    year = int(doc("select").eq(0).val())  # type: ignore
+    year_match = re.search(r"(20\d{2})", str(filename.resolve()))
+    year = int(year_match.group(1)) if year_match else np.nan
     df["season"] = year
     df = df.sort_values(["season", "week", "score"], ascending=(False, True, False))
     return df

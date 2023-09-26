@@ -1,17 +1,19 @@
 #! /usr/bin/env python3
+from functools import reduce
 import typer
 
 from pathlib import Path
 from power_rankings.parse_utils import get_inputs
-from power_rankings.season_summary import get_summary_table
+from power_rankings.season_summary import get_summary_table, plot_season_graphs
 
 DUPES = {
     "MATTHEW GOLDBERG": "Matt Goldberg",
     "mitch hildreth, I. Reese": "mitch hildreth",
+    "Joe Gowetski": "Joseph Gowetski",
 }
 
 
-def main(base_filename: str, start_year: int, end_year: int = 2022):
+def main(base_filename: str, out_dir: Path, start_year: int, end_year: int = 2022):
     # rfs = {
     #     "Expected Wins": rank_functions.expected_wins,
     #     "Pct": rank_functions.expected_win_pct,
@@ -29,10 +31,16 @@ def main(base_filename: str, start_year: int, end_year: int = 2022):
         year_summary = get_summary_table(df, start_week, end_week)
         summaries.append(year_summary)
 
+        season_dir = out_dir / str(season)
+        season_dir.mkdir(parents=True, exist_ok=True)
+        plot_season_graphs(df, start_week, end_week, season_dir)
+
+    aggregated = reduce(lambda a, b: a.add(b, fill_value=0), summaries)
     cols = [
         "W",
         "T",
         "L",
+        "Pct",
         "Actual",
         "Exp",
         "Luck",
@@ -43,15 +51,14 @@ def main(base_filename: str, start_year: int, end_year: int = 2022):
         "Top3",
         "Bot3",
     ]
-    aggregated = sum(summaries)[cols]
+    aggregated["Pct"] = (aggregated["W"] + 0.5 * aggregated["T"]) / (
+        aggregated["W"] + aggregated["T"] + aggregated["L"]
+    )
+    aggregated = aggregated[cols].sort_values("Pct", ascending=False)
 
-    __import__("ipdb").set_trace()
-    #
-    # for title, counter in counters.items():
-    #     print(("{} Rankings:".format(title)))
-    #     for i, (name, num) in enumerate(counter.most_common()):
-    #         print(("{:2}. {:18} {:.3f}".format(i + 1, name, num)))
-    # print()
+    print()
+    print(aggregated)
+    print()
 
 
 def cli():

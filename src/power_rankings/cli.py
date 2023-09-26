@@ -2,7 +2,6 @@ from pathlib import Path
 
 import typer
 
-# from power_rankings import rank_functions
 from power_rankings.parse_utils import get_inputs, most_recent_week
 from power_rankings.season_summary import get_summary_table, plot_season_graphs
 
@@ -30,7 +29,7 @@ def main(
 
     summary_table = get_summary_table(df, start_week, end_week)
 
-    plot_season_graphs(df, out_dir)
+    plot_season_graphs(df, start_week, end_week, out_dir)
 
     print()
     print(summary_table)

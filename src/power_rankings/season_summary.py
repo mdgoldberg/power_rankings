@@ -1,13 +1,9 @@
-import pandas as pd
-from collections import Counter
 import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
-from power_rankings.parse_utils import most_recent_week
 import pandas as pd
 import numpy as np
 from collections import Counter, defaultdict
-from power_rankings.parse_utils import most_recent_week
 
 
 def get_summary_table(all_df: pd.DataFrame, start_week: int, end_week: int):
@@ -23,9 +19,7 @@ def get_summary_table(all_df: pd.DataFrame, start_week: int, end_week: int):
                 continue
 
             score: float = team_row.values[0].item()
-            all_scores: list[tuple[str, float]] = group.loc[
-                :, ["team", "score"]
-            ].values.tolist()
+            all_scores: list[tuple[str, float]] = group.loc[:, ["team", "score"]].values.tolist()
             for opp, opp_score in all_scores:
                 if player != opp:
                     column_counters["W"][player] += score > opp_score
@@ -72,26 +66,22 @@ def get_summary_table(all_df: pd.DataFrame, start_week: int, end_week: int):
 
     summary["Top1"] = team_grouped.apply(
         lambda tm: sum(
-            score >= weekly_max[wk]
-            for wk, score in tm.set_index("week").score.to_dict().items()
+            score >= weekly_max[wk] for wk, score in tm.set_index("week").score.to_dict().items()
         )
     )
     summary["Bot1"] = team_grouped.apply(
         lambda tm: sum(
-            score <= weekly_min[wk]
-            for wk, score in tm.set_index("week").score.to_dict().items()
+            score <= weekly_min[wk] for wk, score in tm.set_index("week").score.to_dict().items()
         )
     )
     summary["Top3"] = team_grouped.apply(
         lambda tm: sum(
-            score >= weekly_top3[wk]
-            for wk, score in tm.set_index("week").score.to_dict().items()
+            score >= weekly_top3[wk] for wk, score in tm.set_index("week").score.to_dict().items()
         )
     )
     summary["Bot3"] = team_grouped.apply(
         lambda tm: sum(
-            score <= weekly_bot3[wk]
-            for wk, score in tm.set_index("week").score.to_dict().items()
+            score <= weekly_bot3[wk] for wk, score in tm.set_index("week").score.to_dict().items()
         )
     )
 
@@ -99,9 +89,8 @@ def get_summary_table(all_df: pd.DataFrame, start_week: int, end_week: int):
     return summary
 
 
-def plot_season_graphs(df: pd.DataFrame, out_dir: Path):
-    most_recent = most_recent_week(df)
-    summaries = [get_summary_table(df, 1, i) for i in range(1, most_recent)]
+def plot_season_graphs(df: pd.DataFrame, start_week: int, end_week: int, out_dir: Path):
+    summaries = [get_summary_table(df, start_week, end) for end in range(start_week, end_week + 1)]
     plot_configs = [
         (
             "Expected Wins",
@@ -127,10 +116,7 @@ def plot_season_graphs(df: pd.DataFrame, out_dir: Path):
         (
             "Points Per Game",
             pd.concat(
-                [
-                    (summ["PF"] / (i + 1)).rename(f"{i+1}")
-                    for i, summ in enumerate(summaries)
-                ],
+                [(summ["PF"] / (i + 1)).rename(f"{i+1}") for i, summ in enumerate(summaries)],
                 axis=1,
             ).T,
         ),
@@ -144,16 +130,19 @@ def plot_season_graphs(df: pd.DataFrame, out_dir: Path):
     ]
 
     plt.style.use("fivethirtyeight")
-    fig, axs = plt.subplots(
-        nrows=len(plot_configs), ncols=1, sharex=True, figsize=(9 * 3, 16 * 3)
-    )
-    fig.set_tight_layout(True)
-
-    for ax, (name, series) in zip(axs, plot_configs):
+    for name, series in plot_configs:
+        ordered_labels = series.tail(1).squeeze().sort_values(ascending=False).index.values.tolist()
+        series = series.loc[:, ordered_labels]
+        fig, ax = plt.subplots(sharex=True, figsize=(16 * 2, 9 * 2))
+        fig.set_tight_layout(True)
         sns.lineplot(series, ax=ax)
+        plt.legend(
+            handles=ax.legend_.legendHandles,
+            labels=ordered_labels,
+        )
         ax.set_xlabel("Week")
         ax.set_ylabel(name)
         season = df.season.unique().item()
         ax.set_title(f"{name} Over {season} Season")
-
-    fig.savefig(out_dir / "plot.png", bbox_inches="tight")
+        fig.savefig(out_dir / f"plot_{name}.png", bbox_inches="tight")
+        plt.close(fig)
