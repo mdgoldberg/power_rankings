@@ -30,7 +30,7 @@ ruff = "^0.0.185"
 flake8 = "^6.0.0"
 jupyter = "^1.0.0"
 ipdb = "^0.13.11"
-ipython = "^8.7.0"
+ipython = "^8.10.0"
 pre-commit = "^2.20.0"
 
 [build-system]
