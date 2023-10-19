@@ -85,6 +85,8 @@ def get_summary_table(all_df: pd.DataFrame, start_week: int, end_week: int):
         )
     )
 
+    summary["Carpe"] = summary["Actual"] / (summary["W"] / games_played)
+
     summary = summary.sort_values("Pct", ascending=False).round(3)
     return summary
 
