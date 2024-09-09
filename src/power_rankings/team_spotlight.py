@@ -1,4 +1,5 @@
 from pathlib import Path
+import polars as pl
 
 import typer
 
@@ -27,19 +28,27 @@ def main(
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    df = df.loc[(start_week <= df.week) & (df.week <= end_week)]
+    df = df.filter(pl.col("week").is_between(start_week, end_week, closed="both")).with_columns(
+        week_rank=pl.col("score").rank(descending=True).over("week"),
+        week_opp_rank=pl.col("opp_score").rank(descending=True).over("week"),
+        result=pl.when(pl.col("wins") == 1.0)
+        .then(pl.lit("W"))
+        .when(pl.col("wins") == 0.5)
+        .then(pl.lit("T"))
+        .otherwise(pl.lit("L")),
+    )
 
-    df["week_rank"] = df.groupby("week").score.rank(ascending=False)
-    df["week_opp_rank"] = df.groupby("week").opp_score.rank(ascending=False)
-    owner_df = df.loc[df.team.str.lower().str.contains(owner_name.lower())]
-    owner_df["result"] = owner_df.wins.map(lambda w: "W" if w == 1.0 else "T" if w == 0.5 else "L")
-    owner_df["totWins"] = (owner_df.result == "W").cumsum()
-    owner_df["totLosses"] = (owner_df.result == "L").cumsum()
+    owner_df = df.filter(
+        pl.col("team").str.to_lowercase().str.contains(owner_name.lower(), strict=True)
+    ).with_columns(
+        tot_wins=(pl.col("result") == "W").cum_sum(),
+        tot_losses=(pl.col("result") == "L").cum_sum(),
+    )
     owner_df = owner_df[
-        [
+
             "week",
-            "totWins",
-            "totLosses",
+            "tot_wins",
+            "tot_losses",
             "team",
             "result",
             "opponent",
@@ -47,11 +56,11 @@ def main(
             "opp_score",
             "week_rank",
             "week_opp_rank",
-        ]
-    ].set_index("week")
+
+    ].to_pandas().set_index("week")
 
     wins = owner_df.loc[owner_df.result == "W"]
-    num_players = len(df.team.unique())
+    num_players = df.select(pl.col('team').n_unique()).item()
     nplayers_p1 = num_players + 1
     wins["Lucky"] = (wins.week_rank >= 0.5 * nplayers_p1).map(lambda b: "☺️" if b else "")
     wins["VLucky"] = (wins.week_rank >= 0.65 * nplayers_p1).map(lambda b: "🤪" if b else "")
