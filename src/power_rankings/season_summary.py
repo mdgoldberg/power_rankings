@@ -87,6 +87,23 @@ def get_summary_table(all_df: pl.DataFrame, start_week: int, end_week: int):
         .with_columns(exp_wins=exp_wins, exp_pct=exp_pct)
         .with_columns(luck=luck, proj_wins=proj_wins)
         .sort("exp_pct", descending=True)
+        .rename(
+            {
+                "actual_wins": "ActualWins",
+                "points_for": "PF",
+                "points_against": "PA",
+                "max_points": "Max",
+                "min_points": "Min",
+                "top1": "Top1",
+                "top3": "Top3",
+                "bot1": "Bot1",
+                "bot3": "Bot3",
+                "exp_wins": "ExpWins",
+                "exp_pct": "ExpWinPct",
+                "luck": "Luck",
+                "proj_wins": "ProjWins",
+            }
+        )
         .to_pandas()
         .set_index("team")
         .round(3)
