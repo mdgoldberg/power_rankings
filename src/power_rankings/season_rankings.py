@@ -29,7 +29,7 @@ def main(
 
     summary_table = get_summary_table(df, start_week, end_week)
 
-    plot_season_graphs(df, start_week, end_week, out_dir)
+    # plot_season_graphs(df, start_week, end_week, out_dir)
 
     print()
     print(summary_table)

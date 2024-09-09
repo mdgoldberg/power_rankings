@@ -2,20 +2,20 @@
 name = "power-rankings"
 version = "0.1.0"
 description = "Add your description here"
-readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "click>=8.1.7",
     "matplotlib>=3.9.2",
     "numpy>=2.1.1",
     "pandas>=2.2.2",
+    "polars[pandas]>=1.6.0",
     "pyquery>=0.13.2",
     "seaborn",
     "typer",
 ]
 
 [project.scripts]
-power-rankings = 'power_rankings.power_rankings:cli'
+season-rankings = 'power_rankings.season_rankings:cli'
 team-spotlight = 'power_rankings.team_spotlight:cli'
 all-time = 'power_rankings.all_time:cli'
 
