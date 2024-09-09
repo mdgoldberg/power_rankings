@@ -47,7 +47,31 @@ def get_inputs(filename: Path) -> pl.DataFrame:
             rows.append(home_entry)
             rows.append(away_entry)
 
+            # TODO: parse byes in `div.bye-team.dib`
+
     df = pl.DataFrame(rows)
+
+    # fill in unplayed weeks (e.g. byes) with nulls
+    teams = set(df.select(pl.col("team").unique()).get_column("team"))
+    num_teams = df.select(pl.col("team").n_unique()).get_column("team")
+    incomplete_weeks = (
+        df.group_by("week")
+        .count()
+        .sort("week")
+        .filter(pl.col("count") < num_teams)
+        .get_column("week")
+    )
+    if not incomplete_weeks.is_empty():
+        additional_data = []
+        for week in incomplete_weeks:
+            teams_played_in_week = df.filter(pl.col("week") == week).get_column("team")
+            teams_wo_entries = teams - set(teams_played_in_week)
+            for team in teams_wo_entries:
+                additional_data.append(
+                    {"week": week, "team": team, "opponent": None, "score": None, "opp_score": None}
+                )
+
+        df = df.extend(pl.DataFrame(additional_data))
 
     wins_col = (
         pl.when(pl.col("score") == pl.col("opp_score"))

@@ -19,11 +19,14 @@ def get_summary_table(all_df: pl.DataFrame, start_week: int, end_week: int):
                 continue
 
             score: float = team_row.item()
+            if score is None:
+                continue
+
             all_scores: list[tuple[str, float]] = [
                 (row["team"], row["score"]) for row in group.select("team", "score").to_struct()
             ]
             for opp, opp_score in all_scores:
-                if player != opp:
+                if opp_score is not None and player != opp:
                     column_counters["W"][player] += score > opp_score
                     column_counters["T"][player] += score == opp_score
                     column_counters["L"][player] += score < opp_score
@@ -34,11 +37,11 @@ def get_summary_table(all_df: pl.DataFrame, start_week: int, end_week: int):
 
     summary = pl.DataFrame(data)
     team_grouped = df.group_by("team")
-    week_grouped = df.group_by("week")
+    week_grouped = df.filter(pl.col("score").is_not_nan()).group_by("week")
 
-    exp_wins = pl.col("W") + 0.5 * pl.col("T")
+    all_wins = pl.col("W") + 0.5 * pl.col("T")
     total = pl.col("W") + pl.col("T") + pl.col("L")
-    exp_pct = exp_wins / total
+    exp_pct = all_wins / total
 
     actual_wins = (
         pl.col("score") > pl.col("opp_score") + 0.5 * (pl.col("score") == pl.col("opp_score"))
@@ -48,13 +51,14 @@ def get_summary_table(all_df: pl.DataFrame, start_week: int, end_week: int):
     # if not has_ties:
     #     summary["Actual"] = summary["Actual"].astype(int)
 
-    exp_wins = exp_pct * pl.count()
-    luck = pl.col("actual_wins") - pl.col("exp_wins")
-
     season = df.get_column("season").unique().item()
     num_weeks = 14 if season > 2020 else 13
     weeks_played = cast(int, team_grouped.count().get_column("count").max())
     weeks_left = max(num_weeks - weeks_played, 0)
+
+    exp_wins = exp_pct * weeks_played
+    luck = pl.col("actual_wins") - pl.col("exp_wins")
+
     proj_wins = pl.col("actual_wins") + (pl.col("exp_pct") * weeks_left)
 
     # TODO: remaining SOS (and then incorporate that into projected)
@@ -72,33 +76,11 @@ def get_summary_table(all_df: pl.DataFrame, start_week: int, end_week: int):
         points_against=pl.col("opp_score").sum(),
         max_points=pl.col("score").max(),
         min_points=pl.col("score").min(),
-        week_score=pl.struct("week", "score"),
-    ).with_columns(
-        top1=pl.col("week_score").map_elements(
-            lambda tm_df: (
-                tm_df.struct["score"]
-                >= week_stats.filter(pl.col("week").is_in(tm_df.struct["week"])).get_column("max")
-            ).sum(), return_dtype=pl.Int32,
-        ),
-        top3=pl.col("week_score").map_elements(
-            lambda tm_df: (
-                tm_df.struct["score"]
-                >= week_stats.filter(pl.col("week").is_in(tm_df.struct["week"])).get_column("top3")
-            ).sum(), return_dtype=pl.Int32,
-        ),
-        bot3=pl.col("week_score").map_elements(
-            lambda tm_df: (
-                tm_df.struct["score"]
-                <= week_stats.filter(pl.col("week").is_in(tm_df.struct["week"])).get_column("bot3")
-            ).sum(), return_dtype=pl.Int32,
-        ),
-        bot1=pl.col("week_score").map_elements(
-            lambda tm_df: (
-                tm_df.struct["score"]
-                <= week_stats.filter(pl.col("week").is_in(tm_df.struct["week"])).get_column("min")
-            ).sum(), return_dtype=pl.Int32,
-        ),
-    ).drop('week_score')
+        top1=(pl.col("score") >= week_stats.get_column("max")).sum(),
+        top3=(pl.col("score") >= week_stats.get_column("top3")).sum(),
+        bot3=(pl.col("score") <= week_stats.get_column("bot3")).sum(),
+        bot1=(pl.col("score") <= week_stats.get_column("min")).sum(),
+    )
 
     return (
         summary.join(team_stats, on="team")
@@ -106,6 +88,7 @@ def get_summary_table(all_df: pl.DataFrame, start_week: int, end_week: int):
         .with_columns(luck=luck, proj_wins=proj_wins)
         .sort("exp_pct", descending=True)
         .to_pandas()
+        .set_index("team")
         .round(3)
     )
 
