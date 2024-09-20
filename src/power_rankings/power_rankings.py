@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 import typer
 
@@ -9,8 +10,8 @@ from power_rankings.season_summary import get_summary_table, plot_season_graphs
 def main(
     html_filename: Path = typer.Argument(..., exists=True, dir_okay=False),
     out_dir: Path = typer.Argument(..., file_okay=False),
-    start_week: int | None = None,
-    end_week: int | None = None,
+    start_week: Optional[int] = None,
+    end_week: Optional[int] = None,
 ):
     """Generates rankings for a given season, given the HTML of the schedule
     and results."""

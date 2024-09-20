@@ -7,11 +7,11 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "click>=8.1.7",
     "matplotlib>=3.9.2",
-    "numpy>=2.1.1",
-    "pandas>=2.2.2",
+    "numpy>=1.23.5,<2",
+    "pandas>=1.5.2,<2",
     "pyquery>=0.13.2",
-    "seaborn",
-    "typer",
+    "seaborn>=0.12.1,<0.13",
+    "typer>=0.7.0,<0.8",
 ]
 
 [project.scripts]

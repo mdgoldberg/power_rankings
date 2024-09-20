@@ -139,7 +139,7 @@ def plot_season_graphs(df: pd.DataFrame, start_week: int, end_week: int, out_dir
         fig.set_tight_layout(True)
         sns.lineplot(series, ax=ax)
         plt.legend(
-            handles=ax.legend_.legendHandles,
+            handles=ax.legend_.legend_handles,
             labels=ordered_labels,
         )
         ax.set_xlabel("Week")
