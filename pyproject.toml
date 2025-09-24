@@ -1,38 +1,28 @@
+[build-system]
+build-backend = "hatchling.build"
+
+requires = [ "hatchling" ]
+
 [project]
 name = "power-rankings"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
+classifiers = [ "Programming Language :: Python :: 3 :: Only", "Programming Language :: Python :: 3.12" ]
 dependencies = [
-    "click>=8.1.7",
-    "matplotlib>=3.9.2",
-    "numpy>=1.23.5,<2",
-    "pandas>=1.5.2,<2",
-    "pyquery>=0.13.2",
-    "seaborn>=0.12.1,<0.13",
-    "typer>=0.7.0,<0.8",
+  "click>=8.1.7",
+  "matplotlib>=3.9.2",
+  "numpy>=1.23.5,<2",
+  "pandas>=1.5.2,<2",
+  "pyquery>=0.13.2",
+  "seaborn>=0.12.1,<0.13",
+  "typer>=0.19",
 ]
 
-[project.scripts]
-power-rankings = 'power_rankings.power_rankings:cli'
-team-spotlight = 'power_rankings.team_spotlight:cli'
-all-time = 'power_rankings.all_time:cli'
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.uv]
-dev-dependencies = [
-    "black>=24.8.0",
-    "flake8>=7.1.1",
-    "ipdb>=0.13.13",
-    "ipython>=8.27.0",
-    "jupyter",
-    "pre-commit>=3.8.0",
-    "ruff",
-]
+scripts.all-time = "power_rankings.all_time:cli"
+scripts.power-rankings = "power_rankings.power_rankings:cli"
+scripts.team-spotlight = "power_rankings.team_spotlight:cli"
 
 [tool.black]
 line-length = 100
@@ -43,3 +33,14 @@ line-length = 100
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
+
+[tool.uv]
+dev-dependencies = [
+  "black>=24.8.0",
+  "flake8>=7.1.1",
+  "ipdb>=0.13.13",
+  "ipython>=8.27.0",
+  "jupyter",
+  "pre-commit>=3.8.0",
+  "ruff",
+]
