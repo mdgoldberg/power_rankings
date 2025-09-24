@@ -3,31 +3,27 @@ from functools import reduce
 import typer
 
 from pathlib import Path
-from power_rankings.parse_utils import get_inputs
+from power_rankings.parse_utils import get_inputs, most_recent_week
 from power_rankings.season_summary import get_summary_table, plot_season_graphs
 
 DUPES = {
     "MATTHEW GOLDBERG": "Matt Goldberg",
     "mitch hildreth, I. Reese": "mitch hildreth",
     "Joe Gowetski": "Joseph Gowetski",
+    "Chris Ptak": "Christopher Ptak",
 }
 
 
-def main(base_filename: str, out_dir: Path, start_year: int, end_year: int = 2022):
-    # rfs = {
-    #     "Expected Wins": rank_functions.expected_wins,
-    #     "Pct": rank_functions.expected_win_pct,
-    #     "Luck Wins": rank_functions.luck_rankings,
-    #     "Wins": rank_functions.get_wins,
-    #     "Points For": rank_functions.points_for,
-    # }
+def main(base_filename: str, out_dir: Path, start_year: int, end_year: int):
     summaries = []
     for season in range(start_year, end_year + 1):
         season_filepath = Path(f"{base_filename}{season}.html")
         df = get_inputs(season_filepath)
         df = df.replace(DUPES)
         start_week = 1
-        end_week = 13 if season <= 2020 else 14
+        last_end_week = 13 if season <= 2020 else 14
+        most_recent = most_recent_week(df)
+        end_week = min(most_recent, last_end_week)
         year_summary = get_summary_table(df, start_week, end_week)
         summaries.append(year_summary)
 
@@ -54,7 +50,7 @@ def main(base_filename: str, out_dir: Path, start_year: int, end_year: int = 202
     aggregated["Pct"] = (aggregated["W"] + 0.5 * aggregated["T"]) / (
         aggregated["W"] + aggregated["T"] + aggregated["L"]
     )
-    aggregated = aggregated[cols].sort_values("Pct", ascending=False)
+    aggregated = aggregated[cols].sort_values("Pct", ascending=False).round(3)
 
     print()
     print(aggregated)
