@@ -5,3 +5,4 @@ writeups/
 notebooks/
 .venv/
 Session.vim
+.env
