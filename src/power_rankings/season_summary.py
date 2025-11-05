@@ -91,41 +91,45 @@ def get_summary_table(all_df: pd.DataFrame, start_week: int, end_week: int):
     return summary
 
 
-def plot_season_graphs(df: pd.DataFrame, start_week: int, end_week: int, out_dir: Path):
+def plot_season_graphs(df: pd.DataFrame, start_week: int, end_week: int, out_dir: Path | None):
+    if out_dir is None:
+        return
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     summaries = [get_summary_table(df, start_week, end) for end in range(start_week, end_week + 1)]
     plot_configs = [
         (
             "Expected Wins",
             pd.concat(
-                [summ["Exp"].rename(f"{i+1}") for i, summ in enumerate(summaries)],
+                [summ["Exp"].rename(f"{i + 1}") for i, summ in enumerate(summaries)],
                 axis=1,
             ).T,
         ),
         (
             "Wins",
             pd.concat(
-                [summ["Actual"].rename(f"{i+1}") for i, summ in enumerate(summaries)],
+                [summ["Actual"].rename(f"{i + 1}") for i, summ in enumerate(summaries)],
                 axis=1,
             ).T,
         ),
         (
             "Expected Win%",
             pd.concat(
-                [summ["Pct"].rename(f"{i+1}") for i, summ in enumerate(summaries)],
+                [summ["Pct"].rename(f"{i + 1}") for i, summ in enumerate(summaries)],
                 axis=1,
             ).T,
         ),
         (
             "Points Per Game",
             pd.concat(
-                [(summ["PF"] / (i + 1)).rename(f"{i+1}") for i, summ in enumerate(summaries)],
+                [(summ["PF"] / (i + 1)).rename(f"{i + 1}") for i, summ in enumerate(summaries)],
                 axis=1,
             ).T,
         ),
         (
             "PF",
             pd.concat(
-                [summ["PF"].rename(f"{i+1}") for i, summ in enumerate(summaries)],
+                [summ["PF"].rename(f"{i + 1}") for i, summ in enumerate(summaries)],
                 axis=1,
             ).T,
         ),

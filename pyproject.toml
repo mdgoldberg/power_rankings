@@ -17,6 +17,7 @@ dependencies = [
   "pandas>=1.5.2,<2",
   "pyquery>=0.13.2",
   "seaborn>=0.12.1,<0.13",
+  "playwright>=1.47",
   "typer>=0.19",
 ]
 
@@ -33,6 +34,7 @@ dev = [
   "jupyter",
   "pre-commit>=3.8",
   "ruff",
+  "pytest>=8.3.3",
 ]
 
 [tool.black]
