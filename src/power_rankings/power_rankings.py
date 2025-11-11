@@ -3,6 +3,7 @@ from pathlib import Path
 import typer
 
 from power_rankings import cli_common
+from power_rankings.name_utils import canonicalize_team_names
 from power_rankings.parse_utils import get_inputs, most_recent_week
 from power_rankings.season_summary import get_summary_table, plot_season_graphs
 
@@ -51,6 +52,7 @@ def main(
     )
 
     df = get_inputs(html_path)
+    df, display_names = canonicalize_team_names(df)
 
     if start_week is None:
         start_week = 1
@@ -62,6 +64,7 @@ def main(
         end_week = min(end_week, most_recent)
 
     summary_table = get_summary_table(df, start_week, end_week)
+    summary_table = summary_table.rename(index=lambda name: display_names.get(name, name))
 
     if out_dir is not None:
         plot_season_graphs(df, start_week, end_week, out_dir)

@@ -3,6 +3,7 @@ from pathlib import Path
 import typer
 
 from power_rankings import cli_common
+from power_rankings.name_utils import canonical_team_label, canonicalize_team_names
 from power_rankings.parse_utils import get_inputs, most_recent_week
 
 
@@ -46,6 +47,7 @@ def main(
     )
 
     df = get_inputs(html_path)
+    df, display_names = canonicalize_team_names(df)
 
     if start_week is None:
         start_week = 1
@@ -60,7 +62,12 @@ def main(
 
     df["week_rank"] = df.groupby("week").score.rank(ascending=False)
     df["week_opp_rank"] = df.groupby("week").opp_score.rank(ascending=False)
-    owner_df = df.loc[df.team.str.lower().str.contains(owner_name.lower())]
+    owner_query = owner_name.lower()
+    canonical_query = canonical_team_label(owner_name).lower()
+    matches = df.team.str.lower().str.contains(owner_query)
+    if canonical_query != owner_query:
+        matches |= df.team.str.lower().str.contains(canonical_query)
+    owner_df = df.loc[matches].copy()
     owner_df["result"] = owner_df.wins.map(lambda w: "W" if w == 1.0 else "T" if w == 0.5 else "L")
     owner_df["totWins"] = (owner_df.result == "W").cumsum()
     owner_df["totLosses"] = (owner_df.result == "L").cumsum()
@@ -78,6 +85,8 @@ def main(
             "week_opp_rank",
         ]
     ].set_index("week")
+    owner_df["team"] = owner_df["team"].map(lambda name: display_names.get(name, name))
+    owner_df["opponent"] = owner_df["opponent"].map(lambda name: display_names.get(name, name))
 
     wins = owner_df.loc[owner_df.result == "W"]
     num_players = len(df.team.unique())

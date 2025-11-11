@@ -5,15 +5,9 @@ from pathlib import Path
 import typer
 
 from power_rankings import cli_common
+from power_rankings.name_utils import canonicalize_team_names
 from power_rankings.parse_utils import get_inputs, most_recent_week
 from power_rankings.season_summary import get_summary_table, plot_season_graphs
-
-DUPES = {
-    "MATTHEW GOLDBERG": "Matt Goldberg",
-    "mitch hildreth, I. Reese": "mitch hildreth",
-    "Joe Gowetski": "Joseph Gowetski",
-    "Chris Ptak": "Christopher Ptak",
-}
 
 
 def main(
@@ -39,6 +33,7 @@ def main(
 
     auto_fetch = cli_common.resolve_auto_fetch(offline)
     summaries = []
+    latest_names: dict[str, str] = {}
     if base_filename is None and not auto_fetch:
         typer.secho("Provide base_filename or omit --offline to auto-fetch schedules.", fg="red", err=True)
         raise typer.Exit(code=2)
@@ -70,7 +65,8 @@ def main(
 
         season_filepath = html_path
         df = get_inputs(season_filepath)
-        df = df.replace(DUPES)
+        df, season_display = canonicalize_team_names(df)
+        latest_names.update(season_display)
         start_week = 1
         last_end_week = 13 if season <= 2020 else 14
         most_recent = most_recent_week(df)
@@ -102,6 +98,7 @@ def main(
         aggregated["W"] + aggregated["T"] + aggregated["L"]
     )
     aggregated = aggregated[cols].sort_values("Pct", ascending=False).round(3)
+    aggregated = aggregated.rename(index=lambda name: latest_names.get(name, name))
 
     print()
     print(aggregated)
