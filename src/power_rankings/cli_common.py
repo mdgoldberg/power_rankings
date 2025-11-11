@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import logging
+import sys
 from datetime import date
 from pathlib import Path
+from typing import NoReturn, TextIO
 
-import typer
+from cyclopts import Parameter
+from cyclopts.validators import Path as PathValidator
 
 from power_rankings.league_config import LeagueConfigError
 from power_rankings.web_fetch import (
@@ -22,101 +25,89 @@ _LOG_LEVELS = {
 }
 
 
-def offline_option() -> bool:
-    return typer.Option(
-        False,
-        "--offline",
+def _exit_with(message: str, exit_code: int, *, stream: TextIO) -> NoReturn:
+    print(message, file=stream)
+    raise SystemExit(exit_code)
+
+
+def abort(message: str, *, exit_code: int = 2) -> NoReturn:
+    _exit_with(message, exit_code, stream=sys.stderr)
+
+
+def warn_and_exit(message: str, *, exit_code: int = 0) -> NoReturn:
+    _exit_with(message, exit_code, stream=sys.stdout)
+
+
+def offline_option() -> Parameter:
+    return Parameter(
         help="Skip downloading schedules; requires local HTML files.",
+        show_default=True,
     )
 
 
-def league_option() -> str | None:
-    return typer.Option(
-        None,
-        "--league",
+def league_option() -> Parameter:
+    return Parameter(
         help="League name (from leagues.toml) used when downloading schedules.",
     )
 
 
-def league_id_option() -> int | None:
-    return typer.Option(
-        None,
+def league_id_option() -> Parameter:
+    return Parameter(
         help="ESPN league identifier to fetch when auto-fetching.",
     )
 
 
-def season_option() -> int | None:
-    return typer.Option(
-        None,
+def season_option() -> Parameter:
+    return Parameter(
         help="Season (year) to fetch when auto-fetching. Defaults to current year.",
     )
 
 
-def download_dir_option() -> Path | None:
-    return typer.Option(
-        None,
-        file_okay=False,
+def download_dir_option() -> Parameter:
+    return Parameter(
         help="Directory to store downloaded HTML (defaults to html/<league>/).",
+        validator=PathValidator(file_okay=False),
     )
 
 
-def leagues_file_option() -> Path | None:
-    return typer.Option(
-        None,
-        dir_okay=False,
+def leagues_file_option() -> Parameter:
+    return Parameter(
         help="Path to leagues.toml mapping league names to IDs.",
+        validator=PathValidator(dir_okay=False),
     )
 
 
-def refresh_option() -> bool:
-    return typer.Option(
-        False,
-        "--refresh",
+def refresh_option() -> Parameter:
+    return Parameter(
         help="Force re-download even if a cached file exists.",
+        show_default=True,
     )
 
 
-def headless_option(default: bool) -> bool:
-    return typer.Option(
-        default,
-        "--headless/--no-headless",
+def headless_option() -> Parameter:
+    return Parameter(
+        show_default=True,
         help="Run the browser in headless mode while auto-fetching.",
     )
 
 
-def username_option() -> str | None:
-    return typer.Option(
-        None,
+def username_option() -> Parameter:
+    return Parameter(
         help="ESPN username/email (overrides ESPN_USERNAME env var).",
     )
 
 
-def password_option() -> str | None:
-    return typer.Option(
-        None,
+def password_option() -> Parameter:
+    return Parameter(
         help="ESPN password (overrides ESPN_PASSWORD env var).",
     )
 
 
-def log_level_option() -> str:
-    return typer.Option(
-        "info",
-        "--log-level",
-        show_default=True,
+def log_level_option() -> Parameter:
+    return Parameter(
         help="Logging verbosity (choose from: debug, info, warning, error, critical).",
-        callback=_normalize_log_level,
+        show_default=True,
     )
-
-
-def _normalize_log_level(level: str | None) -> str:
-    if level is None:
-        return "info"
-    normalized = level.strip().lower()
-    if normalized == "warn":
-        normalized = "warning"
-    if normalized not in _LOG_LEVELS:
-        raise typer.BadParameter("Log level must be one of: debug, info, warning, error, critical.")
-    return normalized
 
 
 def configure_logging(level: str) -> None:
@@ -130,6 +121,17 @@ def configure_logging(level: str) -> None:
             format="%(asctime)s %(levelname)s %(name)s: %(message)s",
             datefmt="%H:%M:%S",
         )
+
+
+def normalize_log_level(level: str | None) -> str:
+    if level is None:
+        return "info"
+    normalized = level.strip().lower()
+    if normalized == "warn":
+        normalized = "warning"
+    if normalized not in _LOG_LEVELS:
+        raise ValueError("Log level must be one of: debug, info, warning, error, critical.")
+    return normalized
 
 
 def resolve_auto_fetch(offline: bool) -> bool:
@@ -171,11 +173,8 @@ def ensure_schedule_or_exit(
             password=password,
         )
     except MissingCredentialsError as exc:
-        typer.secho(str(exc), fg="red", err=True)
-        raise typer.Exit(code=2) from exc
+        abort(str(exc), exit_code=2)
     except LeagueConfigError as exc:
-        typer.secho(str(exc), fg="red", err=True)
-        raise typer.Exit(code=2) from exc
+        abort(str(exc), exit_code=2)
     except LoginAutomationError as exc:
-        typer.secho(f"Automated login failed: {exc}", fg="red", err=True)
-        raise typer.Exit(code=3) from exc
+        abort(f"Automated login failed: {exc}", exit_code=3)
