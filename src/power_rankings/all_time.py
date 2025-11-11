@@ -1,8 +1,9 @@
-#! /usr/bin/env python3
 from functools import reduce
 from pathlib import Path
+from typing import Annotated
 
-import typer
+from cyclopts import Parameter, run
+from cyclopts.validators import Path as PathValidator
 
 from power_rankings import cli_common
 from power_rankings.name_utils import canonicalize_team_names
@@ -11,36 +12,45 @@ from power_rankings.season_summary import get_summary_table, plot_season_graphs
 
 
 def main(
-    base_filename: str | None = typer.Argument(
-        None,
-        help="Prefix for stored HTML files (e.g. html/jlssffl/).",
-    ),
-    out_dir: Path | None = typer.Argument(None, file_okay=False),
-    start_year: int = typer.Argument(..., help="First season (inclusive)."),
-    end_year: int = typer.Argument(..., help="Last season (inclusive)."),
-    offline: bool = cli_common.offline_option(),
-    league: str | None = cli_common.league_option(),
-    league_id: int | None = cli_common.league_id_option(),
-    download_dir: Path | None = cli_common.download_dir_option(),
-    leagues_file: Path | None = cli_common.leagues_file_option(),
-    refresh: bool = cli_common.refresh_option(),
-    headless: bool = cli_common.headless_option(default=True),
-    username: str | None = cli_common.username_option(),
-    password: str | None = cli_common.password_option(),
-    log_level: str = cli_common.log_level_option(),
-):
+    start_year: Annotated[int, Parameter(help="First season (inclusive).")],
+    end_year: Annotated[int, Parameter(help="Last season (inclusive).")],
+    base_filename: Annotated[
+        str | None,
+        Parameter(help="Prefix for stored HTML files (e.g. html/jlssffl/)."),
+    ] = None,
+    out_dir: Annotated[
+        Path | None,
+        Parameter(
+            help="Directory to store generated plots.",
+            validator=PathValidator(file_okay=False),
+        ),
+    ] = None,
+    offline: Annotated[bool, cli_common.offline_option()] = False,
+    league: Annotated[str | None, cli_common.league_option()] = None,
+    league_id: Annotated[int | None, cli_common.league_id_option()] = None,
+    download_dir: Annotated[Path | None, cli_common.download_dir_option()] = None,
+    leagues_file: Annotated[Path | None, cli_common.leagues_file_option()] = None,
+    refresh: Annotated[bool, cli_common.refresh_option()] = False,
+    headless: Annotated[bool, cli_common.headless_option()] = True,
+    username: Annotated[str | None, cli_common.username_option()] = None,
+    password: Annotated[str | None, cli_common.password_option()] = None,
+    log_level: Annotated[str, cli_common.log_level_option()] = "info",
+) -> None:
+    log_level = cli_common.normalize_log_level(log_level)
     cli_common.configure_logging(log_level)
 
     auto_fetch = cli_common.resolve_auto_fetch(offline)
+    if base_filename is None and not auto_fetch:
+        cli_common.abort(
+            "Provide base_filename or omit --offline to auto-fetch schedules.", exit_code=2
+        )
+    if auto_fetch and league_id is None and league is None:
+        cli_common.abort(
+            "Provide --league-id or --league when auto-fetching schedules.", exit_code=2
+        )
+
     summaries = []
     latest_names: dict[str, str] = {}
-    if base_filename is None and not auto_fetch:
-        typer.secho("Provide base_filename or omit --offline to auto-fetch schedules.", fg="red", err=True)
-        raise typer.Exit(code=2)
-    if auto_fetch and league_id is None and league is None:
-        typer.secho("Provide --league-id or --league when auto-fetching schedules.", fg="red", err=True)
-        raise typer.Exit(code=2)
-
     for season in range(start_year, end_year + 1):
         season_path = _season_path(
             base_filename=base_filename,
@@ -63,8 +73,7 @@ def main(
             password=password,
         )
 
-        season_filepath = html_path
-        df = get_inputs(season_filepath)
+        df = get_inputs(html_path)
         df, season_display = canonicalize_team_names(df)
         latest_names.update(season_display)
         start_week = 1
@@ -129,8 +138,8 @@ def _season_path(
     return target_dir / f"{season}.html"
 
 
-def cli():
-    typer.run(main)
+def cli() -> None:
+    run(main)
 
 
 if __name__ == "__main__":

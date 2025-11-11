@@ -3,10 +3,11 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import Iterable
+from typing import Annotated, Iterable
 
 import pandas as pd
-import typer
+from cyclopts import Parameter, run
+from cyclopts.validators import Number
 
 from power_rankings import cli_common
 from power_rankings.league_config import load_league_mapping
@@ -18,62 +19,67 @@ logger = logging.getLogger(__name__)
 
 
 def main(
-    start_season: int | None = typer.Option(
-        None,
-        "--start-season",
-        help="Earliest season (year) to include.",
-    ),
-    end_season: int | None = typer.Option(
-        None,
-        "--end-season",
-        help="Latest season (year) to include.",
-    ),
-    leagues: list[str] | None = typer.Option(
-        None,
-        "--league",
-        "-l",
-        help="League name from leagues.toml. Repeat the option to include multiple leagues.",
-        show_default=False,
-        rich_help_panel="Filters",
-    ),
-    end_week: int | None = typer.Option(
-        None,
-        "--end-week",
-        min=1,
-        max=18,
-        help="Cutoff week (inclusive) when computing each season summary.",
-    ),
-    sort_column: str = typer.Option(
-        "Pct",
-        "--sort-column",
-        help="Output column to sort by. Must match one of the table headers.",
-    ),
-    sort_direction: str = typer.Option(
-        "desc",
-        "--sort-direction",
-        help="Sorting direction for the selected column (asc or desc).",
-    ),
-    offline: bool = cli_common.offline_option(),
-    download_dir: Path | None = cli_common.download_dir_option(),
-    leagues_file: Path | None = cli_common.leagues_file_option(),
-    refresh: bool = cli_common.refresh_option(),
-    headless: bool = cli_common.headless_option(default=True),
-    username: str | None = cli_common.username_option(),
-    password: str | None = cli_common.password_option(),
-    log_level: str = cli_common.log_level_option(),
-):
+    start_season: Annotated[int | None, Parameter(help="Earliest season (year) to include.")] = None,
+    end_season: Annotated[int | None, Parameter(help="Latest season (year) to include.")] = None,
+    leagues: Annotated[
+        list[str] | None,
+        Parameter(
+            name=("league", "-l"),
+            help="League name from leagues.toml. Repeat the option to include multiple leagues.",
+            show_default=False,
+        ),
+    ] = None,
+    end_week: Annotated[
+        int | None,
+        Parameter(
+            help="Cutoff week (inclusive) when computing each season summary.",
+            validator=Number(gte=1, lte=18),
+        ),
+    ] = None,
+    sort_column: Annotated[
+        str,
+        Parameter(help="Output column to sort by. Must match one of the table headers."),
+    ] = "Pct",
+    sort_direction: Annotated[
+        str,
+        Parameter(help="Sorting direction for the selected column (asc or desc)."),
+    ] = "desc",
+    offline: Annotated[bool, cli_common.offline_option()] = False,
+    download_dir: Annotated[Path | None, cli_common.download_dir_option()] = None,
+    leagues_file: Annotated[Path | None, cli_common.leagues_file_option()] = None,
+    refresh: Annotated[bool, cli_common.refresh_option()] = False,
+    headless: Annotated[bool, cli_common.headless_option()] = True,
+    username: Annotated[str | None, cli_common.username_option()] = None,
+    password: Annotated[str | None, cli_common.password_option()] = None,
+    log_level: Annotated[str, cli_common.log_level_option()] = "info",
+) -> None:
     """Compare team seasons across one or more leagues."""
+    log_level = cli_common.normalize_log_level(log_level)
     cli_common.configure_logging(log_level)
+
     auto_fetch = cli_common.resolve_auto_fetch(offline)
-    sort_dir = _normalize_sort_direction(sort_direction)
+
+    try:
+        sort_dir = _normalize_sort_direction(sort_direction)
+    except ValueError as exc:
+        cli_common.abort(str(exc), exit_code=2)
 
     league_mapping = load_league_mapping(leagues_file)
-    selected_leagues = _resolve_leagues(leagues, league_mapping)
+    try:
+        selected_leagues = _resolve_leagues(leagues, league_mapping)
+    except ValueError as exc:
+        cli_common.abort(str(exc), exit_code=2)
 
-    seasons = _resolve_seasons(start_season, end_season, selected_leagues, download_dir)
+    try:
+        seasons = _resolve_seasons(start_season, end_season, selected_leagues, download_dir)
+    except ValueError as exc:
+        cli_common.abort(str(exc), exit_code=2)
+
     if not seasons:
-        typer.secho("No seasons to process; provide --start-season/--end-season or download HTML first.", fg="red", err=True)
-        raise typer.Exit(code=2)
+        cli_common.abort(
+            "No seasons to process; provide --start-season/--end-season or download HTML first.",
+            exit_code=2,
+        )
 
     frames: list[pd.DataFrame] = []
     latest_names: dict[str, tuple[int, str]] = {}
@@ -95,7 +101,7 @@ def main(
                     username=username,
                     password=password,
                 )
-            except typer.Exit:
+            except SystemExit:
                 raise
             except Exception as exc:  # noqa: BLE001
                 logger.error(
@@ -125,15 +131,15 @@ def main(
             frames.append(season_summary)
 
     if not frames:
-        typer.secho("No completed team seasons were found for the requested filters.", fg="yellow")
-        raise typer.Exit(code=0)
+        cli_common.warn_and_exit("No completed team seasons were found for the requested filters.")
 
     combined = pd.concat(frames, ignore_index=True)
     display_lookup = {team: display for team, (_, display) in latest_names.items()}
     combined["Team"] = combined["Team"].map(lambda name: display_lookup.get(name, name))
     if sort_column not in combined.columns:
-        raise ValueError(
-            f"sort_column '{sort_column}' must be one of: {', '.join(combined.columns)}"
+        cli_common.abort(
+            f"sort_column '{sort_column}' must be one of: {', '.join(combined.columns)}",
+            exit_code=2,
         )
     ascending = sort_dir == "asc"
     combined = combined.sort_values(sort_column, ascending=ascending).reset_index(drop=True)
@@ -147,7 +153,7 @@ def main(
 def _normalize_sort_direction(direction: str) -> str:
     norm = (direction or "").strip().lower()
     if norm not in ("asc", "desc"):
-        raise typer.BadParameter("sort-direction must be either 'asc' or 'desc'.")
+        raise ValueError("sort-direction must be either 'asc' or 'desc'.")
     return norm
 
 
@@ -156,9 +162,7 @@ def _resolve_leagues(
     mapping: dict[str, int],
 ) -> list[str]:
     if not mapping:
-        raise typer.BadParameter(
-            "No leagues are configured. Create leagues.toml or pass --leagues-file."
-        )
+        raise ValueError("No leagues are configured. Create leagues.toml or pass --leagues-file.")
 
     if not requested:
         return sorted(mapping.keys())
@@ -166,7 +170,7 @@ def _resolve_leagues(
     normalized_order = list(dict.fromkeys(requested))
     missing = [name for name in normalized_order if name not in mapping]
     if missing:
-        raise typer.BadParameter(
+        raise ValueError(
             f"Unknown league(s): {', '.join(missing)}. Available: {', '.join(sorted(mapping))}"
         )
     return normalized_order
@@ -185,7 +189,7 @@ def _resolve_seasons(
             end = start
         assert start is not None and end is not None
         if start > end:
-            raise typer.BadParameter("--start-season cannot be greater than --end-season.")
+            raise ValueError("--start-season cannot be greater than --end-season.")
         return list(range(start, end + 1))
 
     seasons: set[int] = set()
@@ -242,8 +246,8 @@ def _base_download_dir(download_root: Path | None) -> Path:
     return Path("html")
 
 
-def cli():
-    typer.run(main)
+def cli() -> None:
+    run(main)
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ dependencies = [
   "pyquery>=0.13.2",
   "seaborn>=0.12.1,<0.13",
   "playwright>=1.47",
-  "typer>=0.19",
+  "cyclopts>=4.2",
 ]
 
 scripts.all-time = "power_rankings.all_time:cli"
