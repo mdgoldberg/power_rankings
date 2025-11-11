@@ -17,12 +17,14 @@ dependencies = [
   "pandas>=1.5.2,<2",
   "pyquery>=0.13.2",
   "seaborn>=0.12.1,<0.13",
+  "playwright>=1.47",
   "typer>=0.19",
 ]
 
 scripts.all-time = "power_rankings.all_time:cli"
 scripts.power-rankings = "power_rankings.power_rankings:cli"
 scripts.team-spotlight = "power_rankings.team_spotlight:cli"
+scripts.team-season-rankings = "power_rankings.team_season_rankings:cli"
 
 [dependency-groups]
 dev = [
@@ -33,6 +35,7 @@ dev = [
   "jupyter",
   "pre-commit>=3.8",
   "ruff",
+  "pytest>=8.3.3",
 ]
 
 [tool.black]

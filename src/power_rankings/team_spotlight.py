@@ -1,21 +1,53 @@
 from pathlib import Path
-from typing import Optional
 
 import typer
 
+from power_rankings import cli_common
+from power_rankings.name_utils import canonical_team_label, canonicalize_team_names
 from power_rankings.parse_utils import get_inputs, most_recent_week
 
 
 def main(
     owner_name: str,
-    html_filename: Path = typer.Argument(..., exists=True, dir_okay=False),
-    out_dir: Path = typer.Argument(..., file_okay=False),
-    start_week: Optional[int] = None,
-    end_week: Optional[int] = None,
+    html_filename: Path | None = typer.Argument(None, dir_okay=False),
+    out_dir: Path | None = typer.Argument(None, file_okay=False),
+    start_week: int | None = None,
+    end_week: int | None = None,
+    offline: bool = cli_common.offline_option(),
+    league: str | None = cli_common.league_option(),
+    league_id: int | None = cli_common.league_id_option(),
+    season: int | None = cli_common.season_option(),
+    download_dir: Path | None = cli_common.download_dir_option(),
+    leagues_file: Path | None = cli_common.leagues_file_option(),
+    refresh: bool = cli_common.refresh_option(),
+    headless: bool = cli_common.headless_option(default=True),
+    username: str | None = cli_common.username_option(),
+    password: str | None = cli_common.password_option(),
+    log_level: str = cli_common.log_level_option(),
 ):
     """Generates rankings for a given season, given the HTML of the schedule
     and results."""
-    df = get_inputs(html_filename)
+    cli_common.configure_logging(log_level)
+
+    auto_fetch = cli_common.resolve_auto_fetch(offline)
+    resolved_season = cli_common.resolve_season(auto_fetch, season)
+
+    html_path = cli_common.ensure_schedule_or_exit(
+        html_filename,
+        auto_fetch=auto_fetch,
+        league_id=league_id,
+        league_name=league,
+        leagues_file=leagues_file,
+        season=resolved_season,
+        download_dir=download_dir,
+        force_refresh=refresh,
+        headless=headless,
+        username=username,
+        password=password,
+    )
+
+    df = get_inputs(html_path)
+    df, display_names = canonicalize_team_names(df)
 
     if start_week is None:
         start_week = 1
@@ -26,13 +58,16 @@ def main(
     else:
         end_week = min(end_week, most_recent)
 
-    out_dir.mkdir(parents=True, exist_ok=True)
-
     df = df.loc[(start_week <= df.week) & (df.week <= end_week)]
 
     df["week_rank"] = df.groupby("week").score.rank(ascending=False)
     df["week_opp_rank"] = df.groupby("week").opp_score.rank(ascending=False)
-    owner_df = df.loc[df.team.str.lower().str.contains(owner_name.lower())]
+    owner_query = owner_name.lower()
+    canonical_query = canonical_team_label(owner_name).lower()
+    matches = df.team.str.lower().str.contains(owner_query)
+    if canonical_query != owner_query:
+        matches |= df.team.str.lower().str.contains(canonical_query)
+    owner_df = df.loc[matches].copy()
     owner_df["result"] = owner_df.wins.map(lambda w: "W" if w == 1.0 else "T" if w == 0.5 else "L")
     owner_df["totWins"] = (owner_df.result == "W").cumsum()
     owner_df["totLosses"] = (owner_df.result == "L").cumsum()
@@ -50,6 +85,8 @@ def main(
             "week_opp_rank",
         ]
     ].set_index("week")
+    owner_df["team"] = owner_df["team"].map(lambda name: display_names.get(name, name))
+    owner_df["opponent"] = owner_df["opponent"].map(lambda name: display_names.get(name, name))
 
     wins = owner_df.loc[owner_df.result == "W"]
     num_players = len(df.team.unique())
