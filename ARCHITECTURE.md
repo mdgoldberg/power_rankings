@@ -1,13 +1,13 @@
 # Architecture Overview
 
-This doc summarizes how the current CLI stack ingests ESPN fantasy schedules, transforms them into analytics tables, and exposes those results through Typer entrypoints.
+This doc summarizes how the current CLI stack ingests ESPN fantasy schedules, transforms them into analytics tables, and exposes those results through Cyclopts entrypoints.
 
 ## High-Level Flow
 
 - **Fetch or load HTML** – Every CLI funnels through `cli_common.ensure_schedule_or_exit`, which either validates a user-supplied HTML file or triggers Playwright-based scraping (`web_fetch.download_schedule_html`) using credentials and league metadata from `leagues.toml`.
 - **Parse schedule tables** – `parse_utils.get_inputs` loads the stored HTML and uses PyQuery to walk the matchup tables. It emits a normalized pandas `DataFrame` with one row per team per week containing `team`, `opponent`, `score`, `opp_score`, derived `wins`, and the inferred `season`.
 - **Aggregate season metrics** – `season_summary.get_summary_table` slices the dataframe to the requested weeks and computes aggregate statistics (wins/ties/losses, expected wins, luck, PF/PA, weekly top/bottom finishes, etc.). This is the shared core for `power-rankings`, `all-time`, and the plotting helpers.
-- **Present via CLI** – Each entrypoint (`power_rankings.power_rankings`, `power_rankings.all_time`, `power_rankings.team_spotlight`) wires Typer options to the shared helpers and prints/plots the resulting tables.
+- **Present via CLI** – Each entrypoint (`power_rankings.power_rankings`, `power_rankings.all_time`, `power_rankings.team_spotlight`) wires Cyclopts options to the shared helpers and prints/plots the resulting tables.
 
 ## CLI Entry Points
 

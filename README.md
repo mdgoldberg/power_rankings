@@ -13,7 +13,7 @@ Power Rankings is a CLI toolkit for analyzing ESPN fantasy football leagues. It 
 - Automates HTML retrieval with credentialed Playwright sessions so you avoid manual downloads.
 - Produces season-long trend charts (expected wins, points for, etc.) to visualize trajectory.
 - Aggregates multiple years into “all-time” leaderboards and per-manager highlight reels.
-- Wraps everything in Typer-powered CLIs with sensible defaults and helpful error messaging.
+- Wraps everything in Cyclopts-powered CLIs with sensible defaults and helpful error messaging.
 
 ## Getting started
 
