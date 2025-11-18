@@ -17,7 +17,9 @@ logger = logging.getLogger(__name__)
 
 
 def main(
-    start_season: Annotated[int | None, Parameter(help="Earliest season (year) to include.")] = None,
+    start_season: Annotated[
+        int | None, Parameter(help="Earliest season (year) to include.")
+    ] = None,
     end_season: Annotated[int | None, Parameter(help="Latest season (year) to include.")] = None,
     leagues: Annotated[
         list[str] | None,
