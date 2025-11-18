@@ -33,7 +33,7 @@ so CLI pipelines stay reproducible.
 
 ## Commit & Pull Request Guidelines
 Commits follow conventional prefixes (`feat`, `docs`, `chore`) with optional scopes
-(`feat(cli): ...`). Keep messages imperative and describe the observable behavior change. Each PR
+(`feat(cli): ...`). After the type/scope prefix, write the commit subject in sentence case. Keep messages imperative and describe the observable behavior change. Each PR
 should link issues when relevant, summarize CLI/UI impacts, note new league requirements, and attach
 sample outputs from `out/` if visuals changed. Ensure `uv run pytest`, `uv run black`, and
 `uv run ruff check` pass before requesting review.
@@ -41,5 +41,5 @@ sample outputs from `out/` if visuals changed. Ensure `uv run pytest`, `uv run b
 ## Security & Configuration Tips
 Never commit secrets; load ESPN credentials via `ESPN_USERNAME`/`ESPN_PASSWORD` or CLI flags.
 Regenerate Playwright storage with `uv run power-rankings --refresh` if sessions expire, and inspect
-saved auth state via `python debug_storage_state.py`. Keep `leagues.toml` IDs accurate and scrub
+saved auth state via `python debug_storage_state.py`. Keep `leagues.yaml` IDs accurate and scrub
 personally identifiable information from committed HTML captures.
