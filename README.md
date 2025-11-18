@@ -33,7 +33,7 @@ tables, and expose those results through Typer entrypoints.
 
 - **Fetch or load HTML** – Every CLI funnels through `cli_common.ensure_schedule_or_exit`, which
   either validates a user-supplied HTML file or triggers Playwright-based scraping
-  (`web_fetch.download_schedule_html`) using credentials and league metadata from `leagues.toml`.
+  (`web_fetch.download_schedule_html`) using credentials and league metadata from `leagues.yaml`.
 - **Parse schedule tables** – `parse_utils.get_inputs` loads the stored HTML and uses PyQuery to walk
   the matchup tables. It emits a normalized pandas `DataFrame` with one row per team per week
   containing `team`, `opponent`, `score`, `opp_score`, derived `wins`, and the inferred `season`.
@@ -107,11 +107,11 @@ uv run playwright install chromium
 
 ### Configure leagues and credentials
 
-Map friendly league names to ESPN IDs in [`leagues.toml`](leagues.toml):
+Map friendly league names to ESPN IDs in [`leagues.yaml`](leagues.yaml):
 
-```toml
-[jlssffl]
-league_id = 329301
+```yaml
+example-league:
+  league_id: 123456
 ```
 
 Store ESPN credentials via environment variables or CLI flags:
@@ -122,17 +122,16 @@ export ESPN_PASSWORD="app-specific-password"
 ```
 
 Playwright caches login state in `~/.cache/power_rankings/espn_state.json`. If a stored session
-expires, re-run a command with `--headless/--no-headless` as needed or use
-[`debug_storage_state.py`](debug_storage_state.py) to inspect the saved state.
+expires, re-run a command with `--headless/--no-headless` as needed to refresh credentials.
 
 ### CLI quick reference
 
 | Command | Purpose | Example |
 | --- | --- | --- |
-| `power-rankings` | Single-season summary with optional plots | `uv run power-rankings --league jlssffl --season 2024 --out-dir out/2024` |
-| `all-time` | Aggregate multiple seasons | `uv run all-time 2019 2024 --league jlssffl --out-dir out/all-time` |
-| `team-spotlight` | Narrative of one owner’s season | `uv run team-spotlight "Matt Goldberg" --league jlssffl --season 2024 --out-dir out/spotlight` |
-| `team-season-rankings` | Cross-league, cross-season comparisons | `uv run team-season-rankings --league jlssffl --league hoedown --start-season 2018 --end-season 2024` |
+| `power-rankings` | Single-season summary with optional plots | `uv run power-rankings --league example-league --season 2024 --out-dir out/2024` |
+| `all-time` | Aggregate multiple seasons | `uv run all-time 2019 2024 --league example-league --out-dir out/all-time` |
+| `team-spotlight` | Narrative of one owner’s season | `uv run team-spotlight "Example Manager" --league example-league --season 2024 --out-dir out/spotlight` |
+| `team-season-rankings` | Cross-league, cross-season comparisons | `uv run team-season-rankings --league example-league --league showcase-league --start-season 2018 --end-season 2024` |
 
 All commands accept shared options from `cli_common.py`:
 
@@ -147,19 +146,19 @@ All commands accept shared options from `cli_common.py`:
 - Use local HTML and create charts:
 
   ```bash
-  uv run power-rankings html/jlssffl/2023.html --offline --out-dir out/2023
+  uv run power-rankings html/example-league/2023.html --offline --out-dir out/2023
   ```
 
 - Auto-fetch five years of data and print cumulative standings:
 
   ```bash
-  uv run all-time 2020 2024 --league jlssffl --download-dir html/jlssffl
+  uv run all-time 2020 2024 --league example-league --download-dir html/example-league
   ```
 
 - Compare every stored team season, sorted by `Proj` and limited to games through Week 10:
 
   ```bash
-  uv run team-season-rankings --league jlssffl --end-week 10 --sort-column Proj --sort-direction desc
+  uv run team-season-rankings --league example-league --end-week 10 --sort-column Proj --sort-direction desc
   ```
 
 ### Testing and quality checks
@@ -179,7 +178,6 @@ automation logic. Save generated plots to `out/` and keep deterministic fixtures
 
 - [Architecture overview](#architecture-overview) – Data flow, CLI interactions, and data model.
 - [AGENTS.md](AGENTS.md) – Repository conventions, testing requirements, and release expectations.
-- [`debug_storage_state.py`](debug_storage_state.py) – Diagnose Playwright login sessions.
 - [`tests/test_web_fetch.py`](tests/test_web_fetch.py) – Reference for stubbing ESPN scraping.
 - File an issue or start a discussion in the repository when you need new league metadata, CLI
   flags, or help debugging Playwright.

@@ -10,7 +10,7 @@ from cyclopts import Parameter, run
 from cyclopts.validators import Number
 
 from power_rankings import cli_common
-from power_rankings.league_config import load_league_mapping
+from power_rankings.league_config import PRIMARY_CONFIG_NAME, load_league_mapping
 from power_rankings.name_utils import canonicalize_team_names
 from power_rankings.parse_utils import get_inputs, most_recent_week
 from power_rankings.season_summary import get_summary_table
@@ -25,7 +25,7 @@ def main(
         list[str] | None,
         Parameter(
             name=("league", "-l"),
-            help="League name from leagues.toml. Repeat the option to include multiple leagues.",
+            help=f"League name from {PRIMARY_CONFIG_NAME}. Repeat the option to include multiple leagues.",
             show_default=False,
         ),
     ] = None,
@@ -162,7 +162,9 @@ def _resolve_leagues(
     mapping: dict[str, int],
 ) -> list[str]:
     if not mapping:
-        raise ValueError("No leagues are configured. Create leagues.toml or pass --leagues-file.")
+        raise ValueError(
+            f"No leagues are configured. Create {PRIMARY_CONFIG_NAME} or pass --leagues-file."
+        )
 
     if not requested:
         return sorted(mapping.keys())

@@ -9,7 +9,7 @@ from typing import NoReturn, TextIO
 from cyclopts import Parameter
 from cyclopts.validators import Path as PathValidator
 
-from power_rankings.league_config import LeagueConfigError
+from power_rankings.league_config import LeagueConfigError, PRIMARY_CONFIG_NAME
 from power_rankings.web_fetch import (
     LoginAutomationError,
     MissingCredentialsError,
@@ -47,7 +47,7 @@ def offline_option() -> Parameter:
 
 def league_option() -> Parameter:
     return Parameter(
-        help="League name (from leagues.toml) used when downloading schedules.",
+        help=f"League name (from {PRIMARY_CONFIG_NAME}) used when downloading schedules.",
     )
 
 
@@ -72,7 +72,7 @@ def download_dir_option() -> Parameter:
 
 def leagues_file_option() -> Parameter:
     return Parameter(
-        help="Path to leagues.toml mapping league names to IDs.",
+        help=f"Path to {PRIMARY_CONFIG_NAME} mapping league names to IDs.",
         validator=PathValidator(dir_okay=False),
     )
 

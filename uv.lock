@@ -1295,6 +1295,7 @@ dependencies = [
     { name = "pandas" },
     { name = "playwright" },
     { name = "pyquery" },
+    { name = "pyyaml" },
     { name = "seaborn" },
 ]
 
@@ -1319,6 +1320,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=1.5.2,<2" },
     { name = "playwright", specifier = ">=1.47" },
     { name = "pyquery", specifier = ">=0.13.2" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "seaborn", specifier = ">=0.12.1,<0.13" },
 ]
 
