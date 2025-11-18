@@ -5,7 +5,7 @@ CLI entry points and shared helpers live under `src/power_rankings/`: `power_ran
 `all_time.py` expose Typer commands, `team_spotlight.py` and `team_season_rankings.py` drive
 story-driven outputs, `cli_common.py` coordinates ESPN scraping, while `season_summary.py` and
 `parse_utils.py` handle analytics. Cached HTML is stored at `html/<league>/<season>.html`; derived
-plots or tables go to `out/`. League metadata sits in `leagues.toml`, and notebook experiments stay
+plots or tables go to `out/`. League metadata sits in `leagues.yaml`, and notebook experiments stay
 in `model.ipynb`. Tests mirror the package layout inside `tests/`, with fixtures near the specs they
 serve.
 
