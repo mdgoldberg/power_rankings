@@ -6,3 +6,4 @@ notebooks/
 .venv/
 Session.vim
 .env
+leagues.yaml
