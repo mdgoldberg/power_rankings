@@ -74,7 +74,6 @@ keeping UX consistent.
   - `Max` / `Min` – Best and worst weekly scores logged by the team.
   - `Top1`, `Bot1`, `Top3`, `Bot3` – Frequency of finishing in the top/bottom 1 or 3 scores for a
     given week.
-  - `Carpe` – Ratio of actual wins to the weekly-adjusted expected wins metric.
 
 Downstream tables (CLI prints and optional plots) are sorted by `Pct` descending and rounded to
 three decimals before display.
