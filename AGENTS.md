@@ -14,8 +14,8 @@ Install dependencies once with `uv sync`, then add browsers via
 `uv run playwright install chromium`. Run the main season CLI through
 `uv run power-rankings --league jlssffl --season 2024 --out-dir out/2024`. Aggregations or
 narratives use `uv run all-time ...`, `uv run team-spotlight ...`, and
-`uv run team-season-rankings ...`. Format the codebase with `uv run black src tests` and lint via
-`uv run ruff check src tests`. Execute the suite using `uv run pytest` or target a module, e.g.
+`uv run team-season-rankings ...`. Format the codebase with `uv run ruff format src tests` and lint
+via `uv run ruff check src tests`. Execute the suite using `uv run pytest` or target a module, e.g.
 `uv run pytest tests/test_web_fetch.py` when iterating on scraping utilities.
 
 ## Coding Style & Naming Conventions
@@ -35,7 +35,7 @@ so CLI pipelines stay reproducible.
 Commits follow conventional prefixes (`feat`, `docs`, `chore`) with optional scopes
 (`feat(cli): ...`). After the type/scope prefix, write the commit subject in sentence case. Keep messages imperative and describe the observable behavior change. Each PR
 should link issues when relevant, summarize CLI/UI impacts, note new league requirements, and attach
-sample outputs from `out/` if visuals changed. Ensure `uv run pytest`, `uv run black`, and
+sample outputs from `out/` if visuals changed. Ensure `uv run pytest`, `uv run ruff format`, and
 `uv run ruff check` pass before requesting review.
 
 ## Security & Configuration Tips
