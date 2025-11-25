@@ -1,12 +1,30 @@
 from pathlib import Path
 from typing import Annotated
 
+import polars as pl
 from cyclopts import Parameter, run
 from cyclopts.validators import Path as PathValidator
+from rich.console import Console
+from rich.table import Table
 
 from power_rankings import cli_common
 from power_rankings.name_utils import canonical_team_label, canonicalize_team_names
 from power_rankings.parse_utils import get_inputs, most_recent_week
+
+
+# Keep these single-codepoint to avoid Rich width miscalculations that offset table columns.
+EMOJI = {
+    "Lucky": "🙂",
+    "VLucky": "🤪",
+    "Lotto": "💸",
+    "KeyWin": "😤",
+    "BuiltDiff": "📣",
+    "MissedOpp": "🤦",
+    "Beefed": "🙈",
+    "Unlucky": "😖",
+    "VUnlucky": "🙃",
+    "KYS": "🔫",
+}
 
 
 def main(
@@ -60,82 +78,115 @@ def main(
         password=password,
     )
 
-    df = get_inputs(html_path)
-    df, display_names = canonicalize_team_names(df)
+    df_polars = get_inputs(html_path)
+    df_polars, display_names = canonicalize_team_names(df_polars)
 
     if start_week is None:
         start_week = 1
 
-    most_recent = most_recent_week(df)
+    most_recent = most_recent_week(df_polars)
     if end_week is None:
         end_week = most_recent
     else:
         end_week = min(end_week, most_recent)
 
-    df = df.loc[(start_week <= df.week) & (df.week <= end_week)]
+    df = df_polars.filter(pl.col("week").is_between(start_week, end_week, closed="both"))
+    df = df.with_columns(
+        result=pl.when(pl.col("wins") == 1.0)
+        .then(pl.lit("W"))
+        .when(pl.col("wins") == 0.5)
+        .then(pl.lit("T"))
+        .otherwise(pl.lit("L")),
+        week_rank=pl.col("score").rank(method="average", descending=True).over("week"),
+        week_opp_rank=pl.col("opp_score").rank(method="average", descending=True).over("week"),
+        team_lower=pl.col("team").str.to_lowercase(),
+    )
 
-    df["week_rank"] = df.groupby("week").score.rank(ascending=False)
-    df["week_opp_rank"] = df.groupby("week").opp_score.rank(ascending=False)
     owner_query = owner_name.lower()
     canonical_query = canonical_team_label(owner_name).lower()
-    matches = df.team.str.lower().str.contains(owner_query)
-    if canonical_query != owner_query:
-        matches |= df.team.str.lower().str.contains(canonical_query)
-    owner_df = df.loc[matches].copy()
-    owner_df["result"] = owner_df.wins.map(lambda w: "W" if w == 1.0 else "T" if w == 0.5 else "L")
-    owner_df["totWins"] = (owner_df.result == "W").cumsum()
-    owner_df["totLosses"] = (owner_df.result == "L").cumsum()
-    owner_df = owner_df[
-        [
-            "week",
-            "totWins",
-            "totLosses",
-            "team",
-            "result",
-            "opponent",
-            "score",
-            "opp_score",
-            "week_rank",
-            "week_opp_rank",
-        ]
-    ].set_index("week")
-    owner_df["team"] = owner_df["team"].map(lambda name: display_names.get(name, name))
-    owner_df["opponent"] = owner_df["opponent"].map(lambda name: display_names.get(name, name))
+    owner_df = df.filter(
+        pl.col("team_lower").str.contains(owner_query)
+        | pl.col("team_lower").str.contains(canonical_query)
+    ).drop("team_lower")
 
-    wins = owner_df.loc[owner_df.result == "W"]
-    num_players = len(df.team.unique())
-    nplayers_p1 = num_players + 1
-    wins["Lucky"] = (wins.week_rank >= 0.5 * nplayers_p1).map(lambda b: "☺️" if b else "")
-    wins["VLucky"] = (wins.week_rank >= 0.65 * nplayers_p1).map(lambda b: "🤪" if b else "")
-    wins["Lotto"] = (wins.week_rank >= 0.8 * nplayers_p1).map(lambda b: "💸" if b else "")
-    wins["KeyWin"] = (wins.week_opp_rank <= 0.5 * nplayers_p1).map(lambda b: "😤" if b else "")
-    wins["BuiltDiff"] = (wins.week_opp_rank <= 0.25 * nplayers_p1).map(lambda b: "🗣️" if b else "")
-
-    ties = owner_df.loc[owner_df.result == "T"]
-
-    losses = owner_df.loc[owner_df.result == "L"]
-    losses["MissedOpp"] = (losses.week_opp_rank >= 0.5 * nplayers_p1).map(
-        lambda b: "🤦‍♂️" if b else ""
+    owner_df = owner_df.sort("week").with_columns(
+        totWins=(pl.col("result") == "W").cast(pl.Int64).cum_sum(),
+        totLosses=(pl.col("result") == "L").cast(pl.Int64).cum_sum(),
+        team=pl.col("team").map_elements(lambda name: display_names.get(name, name)),
+        opponent=pl.col("opponent").map_elements(lambda name: display_names.get(name, name)),
     )
-    losses["Beefed"] = (losses.week_opp_rank >= 0.7 * nplayers_p1).map(lambda b: "🙈" if b else "")
-    losses["Unlucky"] = (losses.week_rank <= 0.5 * nplayers_p1).map(lambda b: "😖" if b else "")
-    losses["VUnlucky"] = (losses.week_rank <= 0.3 * nplayers_p1).map(lambda b: "🙃" if b else "")
-    losses["KYS"] = (losses.week_rank <= 0.2 * nplayers_p1).map(lambda b: "🔫" if b else "")
 
-    print()
-    print("Results:")
-    print(owner_df)
-    print()
-    print("Wins:")
-    print(wins)
-    print()
-    print("Losses:")
-    print(losses)
-    print()
-    if not ties.empty:
-        print("Ties (!! 👔 !!):")
-        print(ties)
-        print()
+    owner_df = owner_df.select(
+        "week",
+        "totWins",
+        "totLosses",
+        "team",
+        "result",
+        "opponent",
+        "score",
+        "opp_score",
+        "week_rank",
+        "week_opp_rank",
+    )
+
+    num_players = df_polars.select(pl.col("team").n_unique()).item()
+    nplayers_p1 = num_players + 1
+
+    wins = owner_df.filter(pl.col("result") == "W").with_columns(
+        Lucky=pl.when(pl.col("week_rank") >= 0.5 * nplayers_p1)
+        .then(pl.lit(EMOJI["Lucky"]))
+        .otherwise(pl.lit("")),
+        VLucky=pl.when(pl.col("week_rank") >= 0.65 * nplayers_p1)
+        .then(pl.lit(EMOJI["VLucky"]))
+        .otherwise(pl.lit("")),
+        Lotto=pl.when(pl.col("week_rank") >= 0.8 * nplayers_p1)
+        .then(pl.lit(EMOJI["Lotto"]))
+        .otherwise(pl.lit("")),
+        KeyWin=pl.when(pl.col("week_opp_rank") <= 0.5 * nplayers_p1)
+        .then(pl.lit(EMOJI["KeyWin"]))
+        .otherwise(pl.lit("")),
+        BuiltDiff=pl.when(pl.col("week_opp_rank") <= 0.25 * nplayers_p1)
+        .then(pl.lit(EMOJI["BuiltDiff"]))
+        .otherwise(pl.lit("")),
+    )
+
+    ties = owner_df.filter(pl.col("result") == "T")
+
+    losses = owner_df.filter(pl.col("result") == "L").with_columns(
+        MissedOpp=pl.when(pl.col("week_opp_rank") >= 0.5 * nplayers_p1)
+        .then(pl.lit(EMOJI["MissedOpp"]))
+        .otherwise(pl.lit("")),
+        Beefed=pl.when(pl.col("week_opp_rank") >= 0.7 * nplayers_p1)
+        .then(pl.lit(EMOJI["Beefed"]))
+        .otherwise(pl.lit("")),
+        Unlucky=pl.when(pl.col("week_rank") <= 0.5 * nplayers_p1)
+        .then(pl.lit(EMOJI["Unlucky"]))
+        .otherwise(pl.lit("")),
+        VUnlucky=pl.when(pl.col("week_rank") <= 0.3 * nplayers_p1)
+        .then(pl.lit(EMOJI["VUnlucky"]))
+        .otherwise(pl.lit("")),
+        KYS=pl.when(pl.col("week_rank") <= 0.2 * nplayers_p1)
+        .then(pl.lit(EMOJI["KYS"]))
+        .otherwise(pl.lit("")),
+    )
+
+    console = Console()
+
+    def _print_table(title: str, frame: pl.DataFrame) -> None:
+        console.print()
+        console.print(title)
+        table = Table(show_header=True, header_style="bold")
+        for col in frame.columns:
+            table.add_column(col)
+        for row in frame.iter_rows(named=True):
+            table.add_row(*[str(row[col]) for col in frame.columns])
+        console.print(table)
+
+    _print_table("Results:", owner_df)
+    _print_table("Wins:", wins)
+    _print_table("Losses:", losses)
+    if not ties.is_empty():
+        _print_table("Ties (!! 👔 !!):", ties)
 
 
 def cli() -> None:

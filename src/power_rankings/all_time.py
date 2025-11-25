@@ -1,9 +1,11 @@
-from functools import reduce
 from pathlib import Path
 from typing import Annotated
 
+import polars as pl
 from cyclopts import Parameter, run
 from cyclopts.validators import Path as PathValidator
+from rich.console import Console
+from rich.table import Table
 
 from power_rankings import cli_common
 from power_rankings.name_utils import canonicalize_team_names
@@ -49,7 +51,7 @@ def main(
             "Provide --league-id or --league when auto-fetching schedules.", exit_code=2
         )
 
-    summaries = []
+    summaries: list[pl.DataFrame] = []
     latest_names: dict[str, str] = {}
     for season in range(start_year, end_year + 1):
         season_path = _season_path(
@@ -87,31 +89,44 @@ def main(
             season_dir = out_dir / str(season)
             plot_season_graphs(df, start_week, end_week, season_dir)
 
-    aggregated = reduce(lambda a, b: a.add(b, fill_value=0), summaries)
-    cols = [
-        "W",
-        "T",
-        "L",
-        "Pct",
-        "Actual",
-        "Exp",
-        "Luck",
-        "PF",
-        "PA",
-        "Top1",
-        "Bot1",
-        "Top3",
-        "Bot3",
-    ]
-    aggregated["Pct"] = (aggregated["W"] + 0.5 * aggregated["T"]) / (
-        aggregated["W"] + aggregated["T"] + aggregated["L"]
-    )
-    aggregated = aggregated[cols].sort_values("Pct", ascending=False).round(3)
-    aggregated = aggregated.rename(index=lambda name: latest_names.get(name, name))
+    if not summaries:
+        cli_common.warn_and_exit("No summaries computed for the requested range.")
 
-    print()
-    print(aggregated)
-    print()
+    stacked = pl.concat(summaries, how="diagonal")
+    aggregated = (
+        stacked.group_by("team")
+        .agg(
+            W=pl.col("W").sum(),
+            T=pl.col("T").sum(),
+            L=pl.col("L").sum(),
+            Actual=pl.col("Actual").sum(),
+            Exp=pl.col("Exp").sum(),
+            Luck=pl.col("Luck").sum(),
+            PF=pl.col("PF").sum(),
+            PA=pl.col("PA").sum(),
+            Top1=pl.col("Top1").sum(),
+            Bot1=pl.col("Bot1").sum(),
+            Top3=pl.col("Top3").sum(),
+            Bot3=pl.col("Bot3").sum(),
+        )
+        .with_columns(Pct=(pl.col("W") + 0.5 * pl.col("T")) / (pl.col("W") + pl.col("T") + pl.col("L")))
+        .sort("Pct", descending=True)
+        .with_columns(pl.col(pl.Float64).round(3))
+    )
+    aggregated = aggregated.with_columns(
+        team=pl.col("team").map_elements(lambda name: latest_names.get(name, name))
+    )
+
+    console = Console()
+    table = Table(show_header=True, header_style="bold")
+    for col in aggregated.columns:
+        table.add_column(col)
+    for row in aggregated.iter_rows(named=True):
+        table.add_row(*[str(row[col]) for col in aggregated.columns])
+
+    console.print()
+    console.print(table)
+    console.print()
 
 
 def _season_path(
