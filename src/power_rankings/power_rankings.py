@@ -10,7 +10,11 @@ from rich.table import Table
 from power_rankings import cli_common
 from power_rankings.name_utils import canonicalize_team_names
 from power_rankings.parse_utils import get_inputs, most_recent_week
-from power_rankings.season_summary import get_summary_table, plot_season_graphs
+from power_rankings.season_summary import (
+    get_summary_table,
+    order_summary_columns,
+    plot_season_graphs,
+)
 
 
 def main(
@@ -79,6 +83,7 @@ def main(
     summary_table = summary_table.with_columns(
         team=pl.col("team").map_elements(lambda name: display_names.get(name, name))
     )
+    summary_table = order_summary_columns(summary_table)
 
     if out_dir is not None:
         plot_season_graphs(df, start_week, end_week, out_dir)

@@ -16,7 +16,7 @@ expected wins, luck, points for/against, and team-specific storylines.
 
 - **Automated data collection** – Uses Playwright to log in to ESPN with stored credentials and save
   each season’s schedule HTML under `html/<league>/<season>.html`, so you always analyze fresh data.
-- **Consistent metrics** – `season_summary.get_summary_table` powers all CLIs, ensuring “Actual” vs.
+- **Consistent metrics** – `season_summary.get_summary_table` powers all CLIs, ensuring “Record” vs.
   “Expected” wins, “Luck,” `PF/PA`, and top/bottom weekly finishes are comparable across seasons.
 - **Multiple entry points** – Run `power-rankings` for one season, `all-time` for historical rollups,
   `team-spotlight` for emoji-enhanced narratives, or `team-season-rankings` to compare teams across
@@ -65,11 +65,12 @@ keeping UX consistent.
 - **Derived aggregates per team (columns from `get_summary_table`)**:
   - `W`, `T`, `L` – Head-to-head tallies computed against every opponent in the same week.
   - `Pct` – Expected win percentage (`(W + 0.5*T) / (W + T + L)`).
-  - `Actual` – Real wins from actual match outcomes; treated as ints when there are no ties.
-  - `Exp` – Expected wins over the games played (`Pct * games_played`).
-  - `Luck` – `Actual - Exp`, highlighting over/under-performance.
-  - `Proj` – Projection for the rest of the season based on remaining weeks (14 post-2020, otherwise
-    13).
+  - `Record` – Actual wins/losses (and ties, if any) from real match outcomes, e.g. `8-3` or `7-3-1`.
+  - `Exp` – Expected record (`Pct * games_played` wins paired with corresponding losses), e.g.
+    `6.5-3.5` over 10 games.
+  - `Luck` – `(Actual wins + 0.5 * ties) - Expected wins`, highlighting over/under-performance.
+  - `Proj` – Projected record for the full season (wins-losses using expected win%), capped at 14
+    games post-2020 or 13 pre-2021.
   - `PF` / `PA` – Total points for/against.
   - `Max` / `Min` – Best and worst weekly scores logged by the team.
   - `Top1`, `Bot1`, `Top3`, `Bot3` – Frequency of finishing in the top/bottom 1 or 3 scores for a
