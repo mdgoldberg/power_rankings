@@ -13,7 +13,7 @@ from power_rankings import cli_common
 from power_rankings.league_config import PRIMARY_CONFIG_NAME, load_league_mapping
 from power_rankings.name_utils import canonicalize_team_names
 from power_rankings.parse_utils import get_inputs, most_recent_week
-from power_rankings.season_summary import get_summary_table
+from power_rankings.season_summary import get_summary_table, order_summary_columns
 
 logger = logging.getLogger(__name__)
 
@@ -244,8 +244,8 @@ def _build_team_season_summary(
 
     summary = get_summary_table(df, 1, cutoff)
     summary = summary.rename({"team": "Team"})
-    ordered_cols = ["Team"] + [col for col in summary.columns if col != "Team"]
-    return summary.select(ordered_cols), display_names
+    summary = order_summary_columns(summary, team_column="Team")
+    return summary, display_names
 
 
 def _season_dir(league: str, download_root: Path | None) -> Path:
