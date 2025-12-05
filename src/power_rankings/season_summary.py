@@ -63,16 +63,12 @@ def get_summary_table(
         }
     )
 
-    actual_wins_expr = (
-        (pl.col("score") > pl.col("opp_score")).fill_null(False).cast(pl.Int64).sum()
-    )
+    actual_wins_expr = (pl.col("score") > pl.col("opp_score")).fill_null(False).cast(pl.Int64).sum()
     actual_ties_expr = (
         (pl.col("score") == pl.col("opp_score")).fill_null(False).cast(pl.Int64).sum()
     )
     completed_games_expr = (
-        (pl.col("score").is_not_null() & pl.col("opp_score").is_not_null())
-        .cast(pl.Int64)
-        .sum()
+        (pl.col("score").is_not_null() & pl.col("opp_score").is_not_null()).cast(pl.Int64).sum()
     )
 
     team_grouped = df.group_by("team")
@@ -156,9 +152,7 @@ def get_summary_table(
             bot1=pl.when(pl.col("score").is_not_null() & pl.col("week_min").is_not_null())
             .then(pl.col("score") <= pl.col("week_min"))
             .otherwise(False),
-            faced_bot1=pl.when(
-                pl.col("opp_score").is_not_null() & pl.col("week_min").is_not_null()
-            )
+            faced_bot1=pl.when(pl.col("opp_score").is_not_null() & pl.col("week_min").is_not_null())
             .then(pl.col("opp_score") <= pl.col("week_min"))
             .otherwise(False),
             top3=pl.when(pl.col("score").is_not_null() & pl.col("week_top3").is_not_null())
@@ -187,10 +181,9 @@ def get_summary_table(
     exp_wins = win_expr * pl.col("games_played")
     exp_losses = pl.col("games_played") - exp_wins
 
-    projected_win_expr = (
-        pl.col("actual_win_value")
-        + win_expr * pl.when(weeks_left < 0).then(0).otherwise(weeks_left)
-    )
+    projected_win_expr = pl.col("actual_win_value") + win_expr * pl.when(weeks_left < 0).then(
+        0
+    ).otherwise(weeks_left)
 
     summary = summary.join(team_stats, on="team").join(with_week_stats, on="team", how="left")
     summary = summary.with_columns(
@@ -243,9 +236,7 @@ def get_summary_table(
     return order_summary_columns(summary)
 
 
-def plot_season_graphs(
-    df: pl.DataFrame, start_week: int, end_week: int, out_dir: Path | None
-):
+def plot_season_graphs(df: pl.DataFrame, start_week: int, end_week: int, out_dir: Path | None):
     if out_dir is None:
         return
     out_dir.mkdir(parents=True, exist_ok=True)

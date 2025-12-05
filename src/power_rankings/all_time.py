@@ -118,8 +118,7 @@ def main(
             Bot3=pl.col("Bot3").sum(),
         )
         .with_columns(
-            Pct=(pl.col("W") + 0.5 * pl.col("T"))
-            / (pl.col("W") + pl.col("T") + pl.col("L")),
+            Pct=(pl.col("W") + 0.5 * pl.col("T")) / (pl.col("W") + pl.col("T") + pl.col("L")),
             exp_losses=pl.col("games_played") - pl.col("Exp_numeric"),
             record=pl.when(pl.col("actual_ties") > 0)
             .then(
