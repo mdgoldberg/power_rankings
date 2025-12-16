@@ -96,7 +96,7 @@ def main(
     if not summaries:
         cli_common.warn_and_exit("No summaries computed for the requested range.")
 
-    stacked = pl.concat(summaries, how="diagonal")
+    stacked = pl.concat(summaries, how="diagonal_relaxed")
     aggregated = (
         stacked.group_by("team")
         .agg(
@@ -141,6 +141,8 @@ def main(
                     ]
                 )
             ),
+        )
+        .with_columns(
             Exp=pl.concat_str(
                 [
                     pl.col("Exp_numeric").round(3).cast(pl.Utf8),
