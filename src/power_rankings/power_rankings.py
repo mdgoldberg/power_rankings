@@ -1,13 +1,20 @@
 from pathlib import Path
 from typing import Annotated
 
+import polars as pl
 from cyclopts import Parameter, run
 from cyclopts.validators import Path as PathValidator
+from rich.console import Console
+from rich.table import Table
 
 from power_rankings import cli_common
 from power_rankings.name_utils import canonicalize_team_names
 from power_rankings.parse_utils import get_inputs, most_recent_week
-from power_rankings.season_summary import get_summary_table, plot_season_graphs
+from power_rankings.season_summary import (
+    get_summary_table,
+    order_summary_columns,
+    plot_season_graphs,
+)
 
 
 def main(
@@ -73,14 +80,29 @@ def main(
         end_week = min(end_week, most_recent)
 
     summary_table = get_summary_table(df, start_week, end_week)
-    summary_table = summary_table.rename(index=lambda name: display_names.get(name, name))
+    summary_table = summary_table.with_columns(
+        team=pl.col("team").map_elements(lambda name: display_names.get(name, name))
+    )
+    summary_table = order_summary_columns(summary_table)
 
     if out_dir is not None:
         plot_season_graphs(df, start_week, end_week, out_dir)
 
-    print()
-    print(summary_table)
-    print()
+    console = Console()
+    table = Table(show_header=True, header_style="bold")
+    columns = summary_table.columns[:50]
+    table.add_column("Team")
+    for col in columns:
+        if col != "team":
+            table.add_column(col)
+
+    for row in summary_table.head(30).iter_rows(named=True):
+        values = [str(row["team"])] + [str(row[col]) for col in columns if col != "team"]
+        table.add_row(*values)
+
+    console.print()
+    console.print(table)
+    console.print()
 
 
 def cli() -> None:

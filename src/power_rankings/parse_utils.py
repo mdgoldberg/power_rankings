@@ -3,7 +3,7 @@ from typing import Any
 from pyquery import PyQuery as pq
 import re
 import numpy as np
-import pandas as pd
+import polars as pl
 
 
 def try_float(x: Any) -> float | None:
@@ -13,7 +13,7 @@ def try_float(x: Any) -> float | None:
         return None
 
 
-def get_inputs(filename: Path) -> pd.DataFrame:
+def get_inputs(filename: Path) -> pl.DataFrame:
     with open(filename) as f:
         html = f.read()
 
@@ -47,29 +47,34 @@ def get_inputs(filename: Path) -> pd.DataFrame:
             rows.append(home_entry)
             rows.append(away_entry)
 
-    df = pd.DataFrame(rows)
-
-    def wins_func(team_score, opp_score):
-        """Two arguments are team and opponent scores. Returns 1 if team won,
-        0.5 if tied, 0 if team lost."""
-        return (
-            1.0 * (team_score > opp_score) + 0.5 * (team_score == opp_score)
-            if team_score + opp_score > 0.0
-            else 0.0
+    df = pl.DataFrame(rows)
+    wins_col = (
+        pl.when(pl.col("score").is_not_null() & pl.col("opp_score").is_not_null())
+        .then(
+            pl.when(pl.col("score") > pl.col("opp_score"))
+            .then(1.0)
+            .when(pl.col("score") == pl.col("opp_score"))
+            .then(0.5)
+            .otherwise(0.0)
         )
-
-    df["wins"] = [wins_func(score, opp) for score, opp in zip(df.score, df.opp_score)]
+        .otherwise(0.0)
+    )
     year_match = re.search(r"(20\d{2})", str(filename.resolve()))
     year = int(year_match.group(1)) if year_match else np.nan
-    df["season"] = year
-    df = df.sort_values(["season", "week", "score"], ascending=(False, True, False))
-    return df
+    return df.with_columns(
+        wins=wins_col,
+        season=pl.lit(year),
+    ).sort(["season", "week", "score"], descending=[True, False, True])
 
 
-def most_recent_week(df: pd.DataFrame) -> int:
-    earliest_future = int(df.week.max().item() + 1)
-    for wk, group in df.groupby("week"):
-        assert isinstance(wk, int)
-        if wk < earliest_future and not group.score.any():
-            earliest_future = wk
+def most_recent_week(df: pl.DataFrame) -> int:
+    earliest_future = int(df.select(pl.col("week").max()).item() + 1)
+    for wk, group in sorted(df.group_by("week"), key=lambda item: item[0]):
+        if isinstance(wk, tuple):
+            week_value = int(wk[0])
+        else:
+            week_value = int(wk)
+        has_score = bool(group.get_column("score").fill_null(0).to_numpy().any())
+        if week_value < earliest_future and not has_score:
+            earliest_future = week_value
     return earliest_future - 1

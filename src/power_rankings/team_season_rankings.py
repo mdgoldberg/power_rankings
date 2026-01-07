@@ -3,15 +3,17 @@ import re
 from pathlib import Path
 from typing import Annotated, Iterable
 
-import pandas as pd
+import polars as pl
 from cyclopts import Parameter, run
 from cyclopts.validators import Number
+from rich.console import Console
+from rich.table import Table
 
 from power_rankings import cli_common
 from power_rankings.league_config import PRIMARY_CONFIG_NAME, load_league_mapping
 from power_rankings.name_utils import canonicalize_team_names
 from power_rankings.parse_utils import get_inputs, most_recent_week
-from power_rankings.season_summary import get_summary_table
+from power_rankings.season_summary import get_summary_table, order_summary_columns
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +83,7 @@ def main(
             exit_code=2,
         )
 
-    frames: list[pd.DataFrame] = []
+    frames: list[pl.DataFrame] = []
     latest_names: dict[str, tuple[int, str]] = {}
     for league_name in selected_leagues:
         for season in seasons:
@@ -119,35 +121,45 @@ def main(
                 if existing is None or season >= existing[0]:
                     latest_names[canonical] = (season, display)
 
-            if season_summary.empty:
+            if season_summary.is_empty():
                 logger.info(
                     "Season %s for league '%s' has no completed weeks; skipping.",
                     season,
                     league_name,
                 )
                 continue
-            season_summary.insert(0, "Season", season)
-            season_summary.insert(1, "Team", season_summary.pop("Team"))
-            frames.append(season_summary)
+            season_summary = season_summary.with_columns(Season=pl.lit(season))
+            ordered = ["Season", "Team"] + [
+                col for col in season_summary.columns if col not in ("Season", "Team")
+            ]
+            frames.append(season_summary.select(ordered))
 
     if not frames:
         cli_common.warn_and_exit("No completed team seasons were found for the requested filters.")
 
-    combined = pd.concat(frames, ignore_index=True)
+    combined = pl.concat(frames, how="diagonal")
     display_lookup = {team: display for team, (_, display) in latest_names.items()}
-    combined["Team"] = combined["Team"].map(lambda name: display_lookup.get(name, name))
+    combined = combined.with_columns(
+        Team=pl.col("Team").map_elements(lambda name: display_lookup.get(name, name))
+    )
     if sort_column not in combined.columns:
         cli_common.abort(
             f"sort_column '{sort_column}' must be one of: {', '.join(combined.columns)}",
             exit_code=2,
         )
     ascending = sort_dir == "asc"
-    combined = combined.sort_values(sort_column, ascending=ascending).reset_index(drop=True)
+    combined = combined.sort(sort_column, descending=not ascending)
 
-    pd.set_option("display.max_rows", 200)
-    print()
-    print(combined)
-    print()
+    console = Console()
+    table = Table(show_header=True, header_style="bold")
+    for col in combined.columns:
+        table.add_column(col)
+    for row in combined.iter_rows(named=True):
+        table.add_row(*[str(row[col]) for col in combined.columns])
+
+    console.print()
+    console.print(table)
+    console.print()
 
 
 def _normalize_sort_direction(direction: str) -> str:
@@ -215,25 +227,25 @@ def _discover_available_seasons(league: str, download_root: Path | None) -> set[
 
 def _build_team_season_summary(
     html_path: Path, requested_end_week: int | None
-) -> tuple[pd.DataFrame, dict[str, str]]:
+) -> tuple[pl.DataFrame, dict[str, str]]:
     df = get_inputs(html_path)
     df, display_names = canonicalize_team_names(df)
-    if df.empty:
-        return pd.DataFrame(), {}
+    if df.is_empty():
+        return pl.DataFrame(), {}
 
-    season_year = int(df["season"].unique().item())
+    season_year = int(df.get_column("season").unique().item())
     default_last_week = 14 if season_year > 2020 else 13
     most_recent = most_recent_week(df)
     cutoff = min(most_recent, default_last_week)
     if requested_end_week is not None:
         cutoff = min(cutoff, requested_end_week)
     if cutoff < 1:
-        return pd.DataFrame(), {}
+        return pl.DataFrame(), {}
 
     summary = get_summary_table(df, 1, cutoff)
-    summary = summary.reset_index().rename(columns={"index": "Team"})
-    ordered_cols = ["Team"] + [col for col in summary.columns if col != "Team"]
-    return summary.loc[:, ordered_cols], display_names
+    summary = summary.rename({"team": "Team"})
+    summary = order_summary_columns(summary, team_column="Team")
+    return summary, display_names
 
 
 def _season_dir(league: str, download_root: Path | None) -> Path:
