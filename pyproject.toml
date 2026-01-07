@@ -27,6 +27,7 @@ scripts.all-time = "power_rankings.all_time:cli"
 scripts.power-rankings = "power_rankings.power_rankings:cli"
 scripts.team-spotlight = "power_rankings.team_spotlight:cli"
 scripts.team-season-rankings = "power_rankings.team_season_rankings:cli"
+scripts.team-week-rankings = "power_rankings.team_week_rankings:cli"
 
 [dependency-groups]
 dev = [
