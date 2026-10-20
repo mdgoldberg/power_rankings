@@ -6,10 +6,11 @@
 
 ## What the project does
 
-Power Rankings is a Typer-based CLI toolkit for ingesting ESPN fantasy football schedules, computing
-season and multi-season analytics, and exporting summary plots. The core commands live under
-`src/power_rankings/` and share a pipeline that downloads (or reuses cached) ESPN HTML schedules,
-parses weekly matchups into pandas dataframes, and prints tables or plots that highlight actual vs.
+Power Rankings is a Cyclopts-based CLI toolkit for ingesting ESPN fantasy football schedules,
+computing season and multi-season analytics, and exporting summary plots. The core commands live
+under `src/power_rankings/` and share a pipeline that downloads (or reuses cached) ESPN HTML
+schedules, parses weekly matchups into pandas dataframes, and prints tables or plots that highlight
+actual vs.
 expected wins, luck, points for/against, and team-specific storylines.
 
 ## Why the project is useful
@@ -19,15 +20,15 @@ expected wins, luck, points for/against, and team-specific storylines.
 - **Consistent metrics** – `season_summary.get_summary_table` powers all CLIs, ensuring “Record” vs.
   “Expected” wins, “Luck,” `PF/PA`, and top/bottom weekly finishes are comparable across seasons.
 - **Multiple entry points** – Run `power-rankings` for one season, `all-time` for historical rollups,
-  `team-spotlight` for emoji-enhanced narratives, or `team-season-rankings` to compare teams across
-  leagues.
+  `team-spotlight` for emoji-enhanced narratives, `team-season-rankings` to compare teams across
+  leagues, or `team-week-rankings` to rank individual team performances week by week.
 - **Shareable outputs** – Save plots to `out/` for dashboards or export CSV-like tables directly from
   the CLI for downstream processing.
 
 ## Architecture overview
 
 Power Rankings uses a shared pipeline to ingest ESPN fantasy schedules, transform them into analytics
-tables, and expose those results through Typer entrypoints.
+tables, and expose those results through Cyclopts entrypoints.
 
 ### High-level flow
 
@@ -42,7 +43,7 @@ tables, and expose those results through Typer entrypoints.
   weekly top/bottom finishes, etc.). This is the shared core for `power-rankings`, `all-time`, and
   the plotting helpers.
 - **Present via CLI** – Each entrypoint (`power_rankings.power_rankings`, `power_rankings.all_time`,
-  `power_rankings.team_spotlight`) wires Typer options to the shared helpers and prints/plots the
+  `power_rankings.team_spotlight`) wires Cyclopts options to the shared helpers and prints/plots the
   resulting tables.
 
 ### CLI entry points
@@ -55,6 +56,10 @@ tables, and expose those results through Typer entrypoints.
   analysis/visualization (see `team_spotlight.py`).
 - `team-season-rankings` – Compares individual team seasons across leagues and seasons by reusing
   the shared summary tables.
+- `team-week-rankings` – Ranks individual team performances by week across one or more leagues.
+  For each completed week it reports the team's `Rank`/`DenseRank`, opponent and `OppRank`,
+  `Result`, `Score`/`OppScore`, `Margin`, points back/ahead of the weekly high/low, and the gap to
+  the next higher/lower score (see `team_week_rankings.py`).
 
 All CLIs share logging, credential, league, and filesystem options defined in `cli_common.py`,
 keeping UX consistent.
@@ -132,6 +137,7 @@ expires, re-run a command with `--headless/--no-headless` as needed to refresh c
 | `all-time` | Aggregate multiple seasons | `uv run all-time 2019 2024 --league example-league --out-dir out/all-time` |
 | `team-spotlight` | Narrative of one owner’s season | `uv run team-spotlight "Example Manager" --league example-league --season 2024 --out-dir out/spotlight` |
 | `team-season-rankings` | Cross-league, cross-season comparisons | `uv run team-season-rankings --league example-league --league showcase-league --start-season 2018 --end-season 2024` |
+| `team-week-rankings` | Per-week team performance rankings | `uv run team-week-rankings --league example-league --start-season 2022 --end-season 2024 --end-week 14 --sort-column Score --sort-direction desc` |
 
 All commands accept shared options from `cli_common.py`:
 
@@ -159,6 +165,12 @@ All commands accept shared options from `cli_common.py`:
 
   ```bash
   uv run team-season-rankings --league example-league --end-week 10 --sort-column Proj --sort-direction desc
+  ```
+
+- Rank every team’s weekly performances across two seasons, highest `Margin` first:
+
+  ```bash
+  uv run team-week-rankings --league example-league --start-season 2023 --end-season 2024 --sort-column Margin
   ```
 
 ### Testing and quality checks
