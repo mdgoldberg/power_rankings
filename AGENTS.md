@@ -15,12 +15,16 @@ Install dependencies once with `uv sync`, then add browsers via
 `uv run power-rankings --league jlssffl --season 2024 --out-dir out/2024`. Aggregations or
 narratives use `uv run all-time ...`, `uv run team-spotlight ...`, and
 `uv run team-season-rankings ...`. Format the codebase with `uv run ruff format src tests` and lint
-via `uv run ruff check src tests`. Execute the suite using `uv run pytest` or target a module, e.g.
-`uv run pytest tests/test_web_fetch.py` when iterating on scraping utilities.
+via `uv run ruff check src tests`. Run `uv run prek install` once per clone so git commits
+automatically enforce ruff and pytest through `prek` (the drop-in replacement for `pre-commit`);
+run all hooks manually with `uv run prek run --all-files`. Execute the suite using `uv run pytest`
+or target a module, e.g. `uv run pytest tests/test_web_fetch.py` when iterating on scraping
+utilities.
 
 ## Coding Style & Naming Conventions
-Target Python 3.12 and keep functions small, pure, and typed when feasible. Follow Black/ruff’s
-100-character width, prefer f-strings, and keep imports grouped standard/library/local. Name Typer
+Target Python 3.12 and keep functions small, pure, and typed when feasible. Follow ruff’s
+100-character width, prefer f-strings, and keep imports grouped standard/library/local (enforced by
+ruff’s isort rules). Name Typer
 commands with hyphenated CLI identifiers (e.g., `team-season-rankings`) and snake_case for modules.
 Avoid committing notebooks or artifacts outside `model.ipynb` and `out/`.
 

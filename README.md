@@ -166,9 +166,14 @@ All commands accept shared options from `cli_common.py`:
 ```bash
 uv run pytest          # entire suite
 uv run pytest tests/test_web_fetch.py  # focused Playwright mocks
-uv run black src tests
-uv run ruff check src tests
+uv run ruff format src tests  # formatter (replaces black)
+uv run ruff check src tests   # linter (replaces flake8)
+uv run prek run --all-files    # run all git hooks on demand (replaces pre-commit)
 ```
+
+Install the git hooks once per clone with `uv run prek install`; after that, every commit runs
+`ruff check --fix`, `ruff format`, and the test suite automatically via
+[`.pre-commit-config.yaml`](.pre-commit-config.yaml).
 
 `tests/test_web_fetch.py` demonstrates how network calls are mocked; follow that pattern for any new
 automation logic. Save generated plots to `out/` and keep deterministic fixtures (if needed) under
@@ -190,8 +195,8 @@ fantasy analytics tooling. Contributions are welcome:
 1. Review the guidelines in [AGENTS.md](AGENTS.md) (structure, style, testing, conventional commits).
 2. Create a feature branch, make focused changes, and update relevant docs (README, ARCHITECTURE,
    etc.).
-3. Run `uv run pytest -k <target> --maxfail=1`, plus `uv run black` and `uv run ruff`, before
-   opening a pull request.
+3. Run `uv run pytest -k <target> --maxfail=1`, plus `uv run ruff format` and `uv run ruff check`,
+   before opening a pull request (`uv run prek run --all-files` covers hooks and lint in one go).
 4. Use descriptive commit messages (`feat(all-time): add SOS projection`) and document any data
    prerequisites (league IDs, HTML fixtures, screenshots from `out/`).
 
