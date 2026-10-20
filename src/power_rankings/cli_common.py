@@ -7,7 +7,7 @@ from typing import NoReturn, TextIO
 from cyclopts import Parameter
 from cyclopts.validators import Path as PathValidator
 
-from power_rankings.league_config import LeagueConfigError, PRIMARY_CONFIG_NAME
+from power_rankings.league_config import PRIMARY_CONFIG_NAME, LeagueConfigError
 from power_rankings.web_fetch import (
     LoginAutomationError,
     MissingCredentialsError,

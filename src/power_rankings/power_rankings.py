@@ -74,10 +74,7 @@ def main(
         start_week = 1
 
     most_recent = most_recent_week(df)
-    if end_week is None:
-        end_week = most_recent
-    else:
-        end_week = min(end_week, most_recent)
+    end_week = most_recent if end_week is None else min(end_week, most_recent)
 
     summary_table = get_summary_table(df, start_week, end_week)
     summary_table = summary_table.with_columns(
