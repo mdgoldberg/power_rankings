@@ -1,7 +1,7 @@
 [build-system]
 build-backend = "hatchling.build"
 
-requires = [ "hatchling" ]
+requires = ["hatchling"]
 
 [project]
 name = "power-rankings"
@@ -9,13 +9,16 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-classifiers = [ "Programming Language :: Python :: 3 :: Only", "Programming Language :: Python :: 3.12" ]
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+]
 dependencies = [
   "click>=8.1.7",
   "matplotlib>=3.9.2",
   "numpy>=1.23.5,<2",
   "pyquery>=0.13.2",
-  "seaborn>=0.12.1,<0.13",
+  "seaborn>=0.13.2",
   "playwright>=1.47",
   "cyclopts>=4.2",
   "pyyaml>=6.0.2",
@@ -30,21 +33,44 @@ scripts.team-season-rankings = "power_rankings.team_season_rankings:cli"
 
 [dependency-groups]
 dev = [
-  "black>=24.8",
-  "flake8>=7.1.1",
-  "ipdb>=0.13.13",
-  "ipython>=8.27",
-  "jupyter",
-  "pre-commit>=3.8",
-  "ruff",
-  "pytest>=8.3.3",
+    "ipdb",
+    "ipython",
+    "jupyter",
+    "ruff",
+    "pytest",
+    "prek>=0.5.6",
+    "pyrefly>=1.4.0",
 ]
-
-[tool.black]
-line-length = 100
 
 [tool.ruff]
 line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "B",    # flake8-bugbear: likely bugs and design problems
+  "C4",   # flake8-comprehensions
+  "E",    # pycodestyle errors
+  "F",    # pyflakes: undefined names, unused imports
+  "I",    # isort: import sorting
+  "RUF",  # ruff-specific rules
+  "SIM",  # flake8-simplify
+  "UP",   # pyupgrade: modern Python syntax
+  "W",    # pycodestyle warnings
+]
+ignore = [
+  "E501",  # line length is enforced by `ruff format`
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["power_rankings"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011"]  # assert is fine in tests
+
+[tool.ruff.format]
+quote-style = "double"
 
 [tool.pyright]
 venvPath = "."
