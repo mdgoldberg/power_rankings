@@ -72,6 +72,19 @@ known-first-party = ["power_rankings"]
 [tool.ruff.format]
 quote-style = "double"
 
+[tool.pyrefly]
+# Type checking with pyrefly: https://pyrefly.org/en/docs/configuration/
+# Strict preset drives toward full typing; annotation gaps (implicit-any) warn
+# instead of error so untyped code doesn't block commits. Fix warnings over time,
+# then ratchet them up to errors.
+preset = "strict"
+project-includes = ["src", "tests"]
+
+[tool.pyrefly.errors]
+# Report missing annotations without failing the check.
+implicit-any = "warn"
+unused-ignore = "warn"
+
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
