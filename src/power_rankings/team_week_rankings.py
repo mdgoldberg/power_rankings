@@ -1,7 +1,8 @@
 import logging
 import re
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Annotated, Iterable
+from typing import Annotated
 
 import polars as pl
 from cyclopts import Parameter, run
@@ -104,7 +105,7 @@ def main(
                 )
             except SystemExit:
                 raise
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.error(
                     "Failed to retrieve schedule for league '%s' season %s: %s",
                     league_name,
