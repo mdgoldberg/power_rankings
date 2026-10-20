@@ -41,6 +41,8 @@ dev = [
     "pytest",
     "prek>=0.5.6",
     "pyrefly>=1.4.0",
+    "types-seaborn>=0.13.2.20261006",
+    "types-pyyaml>=6.0.12.20260906",
 ]
 
 [tool.ruff]
