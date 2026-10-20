@@ -1,9 +1,10 @@
+import re
 from pathlib import Path
 from typing import Any
-from pyquery import PyQuery as pq
-import re
+
 import numpy as np
 import polars as pl
+from pyquery import PyQuery as pq
 
 
 def try_float(x: Any) -> float | None:
@@ -70,10 +71,7 @@ def get_inputs(filename: Path) -> pl.DataFrame:
 def most_recent_week(df: pl.DataFrame) -> int:
     earliest_future = int(df.select(pl.col("week").max()).item() + 1)
     for wk, group in sorted(df.group_by("week"), key=lambda item: item[0]):
-        if isinstance(wk, tuple):
-            week_value = int(wk[0])
-        else:
-            week_value = int(wk)
+        week_value = int(wk[0]) if isinstance(wk, tuple) else int(wk)
         has_score = bool(group.get_column("score").fill_null(0).to_numpy().any())
         if week_value < earliest_future and not has_score:
             earliest_future = week_value

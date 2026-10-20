@@ -6,11 +6,15 @@ from typing import Any
 
 from playwright.sync_api import (
     BrowserContext,
-    Error as PlaywrightError,
     Frame,
     Page,
-    TimeoutError as PlaywrightTimeoutError,
     sync_playwright,
+)
+from playwright.sync_api import (
+    Error as PlaywrightError,
+)
+from playwright.sync_api import (
+    TimeoutError as PlaywrightTimeoutError,
 )
 
 from power_rankings.league_config import resolve_league_id
@@ -387,7 +391,7 @@ def _persist_storage_state(context: BrowserContext, state_path: Path) -> None:
     try:
         context.storage_state(path=str(state_path))
         logger.debug("Persisted Playwright storage state to %s", state_path)
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.warning(
             "Failed to persist Playwright storage state to %s; future sessions may require login.",
             state_path,

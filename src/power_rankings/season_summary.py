@@ -32,7 +32,7 @@ def get_summary_table(
     df = all_df.filter(pl.col("week").is_between(start_week, end_week, closed="both"))
     players = df.get_column("team").unique().to_list()
 
-    column_counters = defaultdict(lambda: Counter({p: 0 for p in players}))
+    column_counters = defaultdict(lambda: Counter(dict.fromkeys(players, 0)))
 
     for _, group in df.group_by("week"):
         for player in players:
@@ -253,7 +253,7 @@ def plot_season_graphs(df: pl.DataFrame, start_week: int, end_week: int, out_dir
         series: dict[str, list[float | None]] = {team: [] for team in teams}
         for idx, summ in enumerate(summaries, start=1):
             data = summ.select(["team", field]).to_dict(as_series=False)
-            values = dict(zip(data["team"], data[field]))
+            values = dict(zip(data["team"], data[field], strict=False))
             for team in teams:
                 val = values.get(team)
                 if transform is not None:
@@ -281,7 +281,7 @@ def plot_season_graphs(df: pl.DataFrame, start_week: int, end_week: int, out_dir
             reverse=True,
         )
         fig, ax = plt.subplots(sharex=True, figsize=(16 * 2, 9 * 2))
-        fig.set_tight_layout(True)
+        fig.set_layout_engine("tight")
         for team in ordered_labels:
             sns.lineplot(x=weeks, y=metric_series[team], ax=ax, label=team)
         ax.set_xlabel("Week")

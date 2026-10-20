@@ -4,6 +4,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from power_rankings.web_fetch import (
+    EMAIL_SELECTOR,
+    PASSWORD_SELECTOR,
+    SCHEDULE_TABLE_SELECTOR,
+    SUBMIT_SELECTOR,
     FetchConfig,
     LoginAutomationError,
     PlaywrightTimeoutError,
@@ -11,10 +15,6 @@ from power_rankings.web_fetch import (
     _get_schedule_html,
     _perform_login,
     _requires_login,
-    EMAIL_SELECTOR,
-    PASSWORD_SELECTOR,
-    SCHEDULE_TABLE_SELECTOR,
-    SUBMIT_SELECTOR,
 )
 
 

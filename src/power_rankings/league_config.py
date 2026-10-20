@@ -1,16 +1,15 @@
 from collections.abc import Mapping
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, TypeAlias, TypedDict
+from typing import Any, TypedDict
 
 import yaml
-
 
 PRIMARY_CONFIG_NAME = "leagues.yaml"
 
 
-LeagueName: TypeAlias = str
-LeagueIdentifier: TypeAlias = int
+type LeagueName = str
+type LeagueIdentifier = int
 LeagueConfig = dict[LeagueName, LeagueIdentifier]
 
 
@@ -19,7 +18,7 @@ class LeagueRecord(TypedDict, total=False):
 
 
 LeagueValue = LeagueIdentifier | str | LeagueRecord | None
-RawLeagueConfig: TypeAlias = dict[LeagueName, LeagueValue]
+type RawLeagueConfig = dict[LeagueName, LeagueValue]
 
 
 class LeagueConfigError(RuntimeError):
@@ -81,7 +80,7 @@ def load_league_mapping(leagues_file: Path | None = None) -> LeagueConfig:
         candidates.append(specified)
     else:
         cwd = Path.cwd().resolve()
-        search_roots = (cwd,) + tuple(cwd.parents)
+        search_roots = (cwd, *tuple(cwd.parents))
         for root in search_roots:
             candidates.append(root / PRIMARY_CONFIG_NAME)
         module_root = Path(__file__).resolve().parent

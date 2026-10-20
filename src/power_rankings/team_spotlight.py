@@ -11,7 +11,6 @@ from power_rankings import cli_common
 from power_rankings.name_utils import canonical_team_label, canonicalize_team_names
 from power_rankings.parse_utils import get_inputs, most_recent_week
 
-
 # Keep these single-codepoint to avoid Rich width miscalculations that offset table columns.
 EMOJI = {
     "Lucky": "🙂",
@@ -85,10 +84,7 @@ def main(
         start_week = 1
 
     most_recent = most_recent_week(df_polars)
-    if end_week is None:
-        end_week = most_recent
-    else:
-        end_week = min(end_week, most_recent)
+    end_week = most_recent if end_week is None else min(end_week, most_recent)
 
     df = df_polars.filter(pl.col("week").is_between(start_week, end_week, closed="both"))
     df = df.with_columns(
