@@ -15,14 +15,18 @@ Install dependencies once with `uv sync`, then add browsers via
 `uv run power-rankings --league jlssffl --season 2024 --out-dir out/2024`. Aggregations or
 narratives use `uv run all-time ...`, `uv run team-spotlight ...`, and
 `uv run team-season-rankings ...`. Format the codebase with `uv run ruff format src tests` and lint
-via `uv run ruff check src tests`. Run `uv run prek install` once per clone so git commits
-automatically enforce ruff and pytest through `prek` (the drop-in replacement for `pre-commit`);
-run all hooks manually with `uv run prek run --all-files`. Execute the suite using `uv run pytest`
-or target a module, e.g. `uv run pytest tests/test_web_fetch.py` when iterating on scraping
-utilities.
+via `uv run ruff check src tests`. Type-check with `uv run pyrefly check` (config in the
+`[tool.pyrefly]` section of `pyproject.toml`; add `--min-severity=warn` to see annotation
+warnings). Run `uv run prek install` once per clone so
+git commits automatically enforce ruff, pyrefly, and pytest through `prek` (the drop-in replacement
+for `pre-commit`); run all hooks manually with `uv run prek run --all-files`. Execute the suite
+using `uv run pytest` or target a module, e.g. `uv run pytest tests/test_web_fetch.py` when
+iterating on scraping utilities.
 
 ## Coding Style & Naming Conventions
-Target Python 3.12 and keep functions small, pure, and typed when feasible. Follow ruff’s
+Target Python 3.12 and keep functions small, pure, and fully typed — pyrefly runs the `strict`
+preset on every commit, so annotate new and touched code completely (annotation gaps currently warn
+rather than error; see `[tool.pyrefly]` in `pyproject.toml`). Follow ruff’s
 100-character width, prefer f-strings, and keep imports grouped standard/library/local (enforced by
 ruff’s isort rules). Name Typer
 commands with hyphenated CLI identifiers (e.g., `team-season-rankings`) and snake_case for modules.
@@ -39,8 +43,8 @@ so CLI pipelines stay reproducible.
 Commits follow conventional prefixes (`feat`, `docs`, `chore`) with optional scopes
 (`feat(cli): ...`). After the type/scope prefix, write the commit subject in sentence case. Keep messages imperative and describe the observable behavior change. Each PR
 should link issues when relevant, summarize CLI/UI impacts, note new league requirements, and attach
-sample outputs from `out/` if visuals changed. Ensure `uv run pytest`, `uv run ruff format`, and
-`uv run ruff check` pass before requesting review.
+sample outputs from `out/` if visuals changed. Ensure `uv run pytest`, `uv run ruff format`,
+`uv run ruff check`, and `uv run pyrefly check` pass before requesting review.
 
 ## Security & Configuration Tips
 Never commit secrets; load ESPN credentials via `ESPN_USERNAME`/`ESPN_PASSWORD` or CLI flags.
