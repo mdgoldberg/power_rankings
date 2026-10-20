@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 import yaml
 
@@ -64,7 +64,7 @@ def _extract_league_id(league_name: str, value: LeagueValue, path: Path) -> int:
         record_value = value
 
     try:
-        return int(record_value)
+        return int(cast("int | str", record_value))
     except (TypeError, ValueError) as exc:
         raise LeagueConfigError(
             f"League '{league_name}' has an invalid league_id value {record_value!r} in {path}."

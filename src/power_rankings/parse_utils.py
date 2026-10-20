@@ -14,6 +14,11 @@ def try_float(x: Any) -> float | None:
         return None
 
 
+def _cell_text(cell: Any) -> str:
+    # pyquery lacks type hints and reports `.text()` as returning PyQuery; it returns str.
+    return str(cell.text()).strip()
+
+
 def get_inputs(filename: Path) -> pl.DataFrame:
     with open(filename) as f:
         html = f.read()
@@ -26,10 +31,10 @@ def get_inputs(filename: Path) -> pl.DataFrame:
             tds = tr("td")
             game = {
                 "week": i + 1,
-                "away": re.sub(r"\s+", " ", tds.eq(1).text().strip()),
-                "away_score_str": tds.eq(2).text().strip(),
-                "home_score_str": tds.eq(3).text().strip(),
-                "home": re.sub(r"\s+", " ", tds.eq(4).text().strip()),
+                "away": re.sub(r"\s+", " ", _cell_text(tds.eq(1))),
+                "away_score_str": _cell_text(tds.eq(2)),
+                "home_score_str": _cell_text(tds.eq(3)),
+                "home": re.sub(r"\s+", " ", _cell_text(tds.eq(4))),
             }
             home_entry = {
                 "week": game["week"],
