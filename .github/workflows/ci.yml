@@ -1,0 +1,61 @@
+name: CI
+
+# Run on pull requests (the merge gate) and on main (so main is always known-good).
+# `workflow_dispatch` lets you re-run the pipeline by hand from the Actions tab.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege: the workflow only needs to read the repository.
+permissions:
+  contents: read
+
+# If you push again to the same PR/branch, cancel the older run. This mirrors
+# GitLab's `interruptible: true` and avoids burning minutes on stale commits.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    # The job name becomes the status check name shown on the PR and used by
+    # branch protection: ruff-format, ruff-check, pyrefly, pytest.
+    name: ${{ matrix.check.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      # Keep running the other checks even if one fails, so a PR shows every
+      # problem in one pass instead of one failure at a time.
+      fail-fast: false
+      matrix:
+        check:
+          - name: ruff-format
+            command: uv run ruff format --check
+          - name: ruff-check
+            command: uv run ruff check
+          - name: pyrefly
+            command: uv run pyrefly check
+          - name: pytest
+            command: uv run pytest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.13.8"
+          python-version: "3.12"
+          # Cache uv's download/build cache, keyed on pyproject.toml + uv.lock.
+          enable-cache: true
+
+      - name: Install dependencies
+        # --locked fails if uv.lock is out of date instead of silently resolving
+        # different versions in CI than you have locally.
+        run: uv sync --locked
+
+      - name: Run ${{ matrix.check.name }}
+        run: ${{ matrix.check.command }}
