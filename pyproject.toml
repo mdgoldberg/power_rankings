@@ -91,3 +91,7 @@ unused-ignore = "warn"
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
+
+[tool.uv]
+# Wait a week before adopting new releases so a broken or malicious upload has time to surface.
+exclude-newer = "1 week"
