@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # Keep the SHA-pinned actions in .github/workflows/ci.yml up to date.
+  # Dependabot opens a PR, CI runs the same checks, and branch protection
+  # prevents merging it unless all four checks pass.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
